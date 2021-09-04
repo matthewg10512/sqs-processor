@@ -35,7 +35,7 @@ namespace sqs_processor
 
                     IConfiguration configuration = hostContext.Configuration;
                     var apiKey = configuration.GetSection("FMPAPIKey").Value;
-
+                    
                     services.AddScoped<IGetSecurityService>(_ => new GetSecurityFromFMP(new WebClientWrapper(), apiKey));
 
                     services.AddScoped<IGetEarningsService>(_ => new GetEarningsFMP(new WebClientWrapper(), apiKey));
@@ -44,8 +44,8 @@ namespace sqs_processor
 
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
                     var serverVersion = new MySqlServerVersion(new Version(8, 0, 20));
-                    string sqlConnection = "server=financialservices.co3rrlmiycw5.us-east-2.rds.amazonaws.com;  port=3306; user=admin; password=EnvironmentPassword; database=securities;";
-
+                    string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
+                    /*
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion
                , builder =>
                {
@@ -53,6 +53,7 @@ namespace sqs_processor
                }
 
                ));
+                    */
 
 
                     //Configuration.GetConnectionString("FinancialServices")

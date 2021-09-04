@@ -203,7 +203,7 @@ namespace sqs_processor
                 // var t=(IProcess) System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("ProcessUpdateSecurity");
 
 
-                CreateWorkerClass("sqs_processor.Processes.ProcessPreferredGainers");
+                //CreateWorkerClass("sqs_processor.Processes.ProcessPreferredGainers");
 
 
                 await Task.Delay(10000, stoppingToken);
