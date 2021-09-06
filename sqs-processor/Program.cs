@@ -49,10 +49,8 @@ namespace sqs_processor
                     string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
 
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
-                    Console.WriteLine("This is the endpoint detail" + endpoint);
                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
 
-                    Console.WriteLine("This is the endpoint detail complete");
 
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion
                , builder =>
