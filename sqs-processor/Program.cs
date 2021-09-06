@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -45,7 +47,12 @@ namespace sqs_processor
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
                     var serverVersion = new MySqlServerVersion(new Version(8, 0, 20));
                     string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
-                    /*
+
+                    NameValueCollection appConfig = ConfigurationManager.AppSettings;
+                    string endpoint = appConfig["MYSQLPassword"];
+                    Console.WriteLine(endpoint);
+                    sqlConnection.Replace("EnvironmentPassword", endpoint);
+
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion
                , builder =>
                {
@@ -53,7 +60,7 @@ namespace sqs_processor
                }
 
                ));
-                    */
+                    
 
 
                     //Configuration.GetConnectionString("FinancialServices")
