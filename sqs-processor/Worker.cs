@@ -128,11 +128,9 @@ namespace sqs_processor
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Console.WriteLine("no Messages" + !stoppingToken.IsCancellationRequested);
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                Console.WriteLine("there is messages" + !stoppingToken.IsCancellationRequested);
 
                 try
                 {
@@ -148,15 +146,16 @@ namespace sqs_processor
                     {
                         foreach (Message message in response.Messages)
                         {
-                            Console.WriteLine($"Message received");
                             Console.WriteLine($"Message: {message.Body}");
                             
                             try
                             {
 
                                 SQSMessage sqsMessage = JsonConvert.DeserializeObject<SQSMessage>(message.Body);
+                                Console.WriteLine($"Message: {message.Body}");
                                 string taskProcess = sqsMessage.Body;
 
+                                Console.WriteLine($"Message: {sqsMessage.Body}");
                                 string objectToInstantiate = assemblyNamespace + taskProcess;//"ProcessUpdateSecurity";
 
                                 try
