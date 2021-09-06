@@ -50,8 +50,10 @@ namespace sqs_processor
 
                     NameValueCollection appConfig = ConfigurationManager.AppSettings;
                     string endpoint = appConfig["MYSQLPassword"];
-                    Console.WriteLine(endpoint);
+                    Console.WriteLine("This is the endpoint detail" + endpoint);
                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
+
+                    Console.WriteLine("This is the endpoint detail complete");
 
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion
                , builder =>
