@@ -9,6 +9,7 @@ using Amazon.SQS.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using sqs_processor.Processes;
 using sqs_processor.Services.amazon;
 using sqs_processor.Services.Network;
@@ -18,6 +19,14 @@ using sqs_processor.Services.repos;
 
 namespace sqs_processor
 {
+
+    class SQSMessage
+    {
+
+        public string Body { get; set; }
+
+    }
+
     public class Worker : BackgroundService
     {
         private const string assemblyNamespace = "sqs_processor.Processes.";
@@ -141,9 +150,13 @@ namespace sqs_processor
                         {
                             Console.WriteLine($"Message received");
                             Console.WriteLine($"Message: {message.Body}");
-                            string taskProcess = message.Body;
+                            
                             try
                             {
+
+                                SQSMessage sqsMessage = JsonConvert.DeserializeObject<SQSMessage>(message.Body);
+                                string taskProcess = sqsMessage.Body;
+
                                 string objectToInstantiate = assemblyNamespace + taskProcess;//"ProcessUpdateSecurity";
 
                                 try
