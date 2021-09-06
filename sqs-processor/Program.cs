@@ -48,8 +48,7 @@ namespace sqs_processor
                     var serverVersion = new MySqlServerVersion(new Version(8, 0, 20));
                     string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
 
-                    NameValueCollection appConfig = ConfigurationManager.AppSettings;
-                    string endpoint = appConfig["MYSQLPassword"];
+                    string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
                     Console.WriteLine("This is the endpoint detail" + endpoint);
                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
 
