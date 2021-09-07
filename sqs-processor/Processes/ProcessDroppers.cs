@@ -23,6 +23,7 @@ namespace sqs_processor.Processes
             var records = _securityRepository.SecurityAlertCheck(2);
             Console.WriteLine("Records Length" + records.Count);
             string message = _securityRepository.ConvertStringSecurityAlertCheck(records);
+            Console.WriteLine("message" + message);
             if (message != "")
             {
                 _amazonUtility.SendSNSMessage(snsTopicArn, message);

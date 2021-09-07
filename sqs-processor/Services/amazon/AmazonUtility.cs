@@ -24,11 +24,12 @@ namespace sqs_processor.Services.amazon
                     TargetArn = snsURL
 
                 };
-                await snsClient.PublishAsync(request);
+              var info =   await snsClient.PublishAsync(request);
+                Console.WriteLine("SendSNSMessage info" + info.HttpStatusCode);
             }
             catch (Exception ex)
             {
-                
+                Console.WriteLine("SendSNSMessage error" + ex.Message);
             }
 
         }
