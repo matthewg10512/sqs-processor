@@ -16,6 +16,7 @@ namespace sqs_processor.Processes
         public void RunTask()
         {
             var securityTrades = _securityRepository.GetRecommendedSecurityTrades("averagedrop");
+            Console.WriteLine("securityTrades Length" + securityTrades.Count);
             _securityRepository.ProcessAutoSecurityTrades(securityTrades);
         }
     }

@@ -22,6 +22,7 @@ namespace sqs_processor.Processes
         {
 
             var records = _securityRepository.SecurityAlertCheck(3);
+            Console.WriteLine("Records Length" + records.Count);
             string message = _securityRepository.ConvertStringSecurityAlertCheck(records);
             if (message != "")
             {
