@@ -169,7 +169,7 @@ namespace sqs_processor
                                 }
                                 catch (Exception ex)
                                 {
-
+                                    Console.WriteLine($"CreateWorkerClass Error: {ex.Message}");
                                 }
                                 /*
                                 var objectType = Type.GetType(objectToInstantiate);
@@ -186,7 +186,7 @@ namespace sqs_processor
                             }
                             catch (Exception ex)
                             {
-
+                                Console.WriteLine($"General Error Message: {ex.Message}");
                             }
 
 
