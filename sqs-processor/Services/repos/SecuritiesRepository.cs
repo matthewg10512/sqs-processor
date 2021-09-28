@@ -1626,8 +1626,14 @@ namespace sqs_processor.Services.repos
         public List<tempSecurityAlerts> SecurityAlertCheck(int alertTypeId)
         {
             string sql = "CALL `securities`.`SecurityAlertCheck`("+ alertTypeId.ToString() + ")";
-            return   _context.tempSecurityAlerts.FromSqlRaw<tempSecurityAlerts>(sql).ToList();
+
+            var results = _context.tempSecurityAlerts.FromSqlRaw<tempSecurityAlerts>(sql).ToList();
+
+            Save(); 
             
+            return results;
+
+
         }
 
 

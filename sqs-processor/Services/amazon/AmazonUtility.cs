@@ -12,7 +12,7 @@ namespace sqs_processor.Services.amazon
     {
        public async Task SendSNSMessage(string snsURL, string message)
         {
-
+            Console.WriteLine("SendSNSMessage message" + message);
             var snsClient = new AmazonSimpleNotificationServiceClient(RegionEndpoint.GetBySystemName("us-east-2"));
             
             snsURL = snsURL.Replace(" ", "");
