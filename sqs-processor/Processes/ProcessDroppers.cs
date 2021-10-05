@@ -1,4 +1,5 @@
 ﻿using sqs_processor.Services.amazon;
+using sqs_processor.Services.Factories;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -10,23 +11,28 @@ namespace sqs_processor.Processes
     {
         private readonly ISecuritiesRepository _securityRepository;
         private readonly IAmazonUtility _amazonUtility;
-        private readonly string snsTopicArn = "arn:aws:sns:us-east-2:930271955226:Droppers";
-
-        public ProcessDroppers(ISecuritiesRepository securityRepository, IAmazonUtility amazonUtility)
+        
+        public ProcessDroppers(IServiceFactory serviceFactory)
         {
-            _securityRepository = securityRepository;
-            _amazonUtility = amazonUtility;
+            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _amazonUtility = serviceFactory.GetAmazonUtility();
         }
 
         public void RunTask()
         {
-            var records = _securityRepository.SecurityAlertCheck(2);
+            var securityAlertType = _securityRepository.GetSecurityAlertType(2);
+            var records = _securityRepository.SecurityAlertCheck(securityAlertType);
+
+
+            _securityRepository.ProcessSecurityAlerts(records, securityAlertType);
+
             Console.WriteLine("Records Length" + records.Count);
             string message = _securityRepository.ConvertStringSecurityAlertCheck(records);
             Console.WriteLine("message" + message);
             if (message != "")
             {
-                _amazonUtility.SendSNSMessage(snsTopicArn, message);
+                
+                _amazonUtility.SendSNSMessage(securityAlertType.awsSNSURL, message);
             }
         }
     }

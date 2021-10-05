@@ -29,7 +29,9 @@ namespace sqs_processor.DbContexts
 
         public DbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
         public DbSet<SecurityPercentageStatistics> SecurityPercentageStatistics { get; set; }
+        public DbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
 
+        public DbSet<SecurityAlert> SecurityAlerts { get; set; }
 
         public void Save()
         {

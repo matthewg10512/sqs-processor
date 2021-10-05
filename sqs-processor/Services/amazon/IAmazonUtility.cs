@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace sqs_processor.Services.amazon
 {
-    interface IAmazonUtility
+   public interface IAmazonUtility
     {
 
          Task SendSNSMessage(string snsURL, string message);

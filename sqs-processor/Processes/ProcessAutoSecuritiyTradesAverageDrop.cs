@@ -1,4 +1,5 @@
-﻿using sqs_processor.Services.Network;
+﻿using sqs_processor.Services.Factories;
+using sqs_processor.Services.Network;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -9,9 +10,9 @@ namespace sqs_processor.Processes
     class ProcessAutoSecuritiyTradesAverageDrop : IProcess
     {
         private readonly ISecuritiesRepository _securityRepository;
-         public ProcessAutoSecuritiyTradesAverageDrop(ISecuritiesRepository securityRepository)
+         public ProcessAutoSecuritiyTradesAverageDrop(IServiceFactory serviceFactory)
         {
-            _securityRepository = securityRepository;
+            _securityRepository = serviceFactory.GetSecuritiesRepository();
         }
         public void RunTask()
         {

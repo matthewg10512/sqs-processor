@@ -16,6 +16,10 @@ namespace sqs_processor.DbContexts
         DbSet<SecurityTasks> SecurityTasks { get; set; }
         IDbSet<Dividend> Dividends { get; set; }
         IDbSet<Earning> Earnings { get; set; }
+        IDbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
+        IDbSet<SecurityAlert> SecurityAlerts { get; set; }
+
+
         //  IDbSet<HistoricalPrice> HistoricalPrices { get; set; }
         //  IDbSet<Earning> Earnings { get; set; }
         //List<HistoricalPrice> DapperHistoricalPrices { get; set; }

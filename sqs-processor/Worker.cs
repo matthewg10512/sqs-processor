@@ -12,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using sqs_processor.Processes;
 using sqs_processor.Services.amazon;
+using sqs_processor.Services.Factories;
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
@@ -36,6 +37,7 @@ namespace sqs_processor
         private readonly IGetEarningsService _earningService;
         private readonly IGetDividendsServices _dividendsService;
         private readonly IAmazonUtility _amazonUtility;
+        private readonly IServiceFactory _serviceFactory;
         public Worker(ILogger<Worker> logger, IServiceProvider serviceProvider)
         {
             _logger = logger;
@@ -44,6 +46,7 @@ namespace sqs_processor
             _earningService = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IGetEarningsService>();
             _dividendsService = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IGetDividendsServices>();
             _amazonUtility = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IAmazonUtility>();
+            _serviceFactory = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IServiceFactory>();
         }
 
         private void CreateWorkerClass(string objectToInstantiate)
@@ -61,64 +64,12 @@ namespace sqs_processor
                 //CallingConventions.HasThis, types, null);
 
                 //if(objectType.declared.dec)
-                var parameters = constructorInfoObj[0].GetParameters();
-                foreach (var parameter in parameters)
-                {
-                    if (parameter.ParameterType.Name == "ISecuritiesRepository")
-                    {
-                        needsISecurityRepository = true;
-                    }
-                    if (parameter.ParameterType.Name == "IGetSecurityService")
-                    {
-                        needsIGetSecurityService = true;
-
-                    }
-                    if (parameter.ParameterType.Name == "IGetEarningsService")
-                    {
-                        needsIGetEarningService = true;
-
-                    }
-                    if (parameter.ParameterType.Name == "IGetDividendsServices")
-                    {
-                        needsIGetDividendsService = true;
-
-                    }
-                    if (parameter.ParameterType.Name == "IAmazonUtility")
-                    {
-                        needsIAmazonUtility = true;
-
-                    }
-                    
-
-
-                }
+                
                 //info[0].ParameterType.Name
                 IProcess t;
-                if (needsISecurityRepository && !needsIGetSecurityService && !needsIGetEarningService && !needsIGetDividendsService && !needsIAmazonUtility)
-                {
-                    t = Activator.CreateInstance(objectType, _securityRepository) as IProcess;
-                }
-                else if (needsISecurityRepository && needsIGetSecurityService)
-                {
-                    t = Activator.CreateInstance(objectType, _securityRepository, _securityService) as IProcess;
-                }
-                else if (needsISecurityRepository && needsIGetEarningService)
-                {
-                    t = Activator.CreateInstance(objectType, _securityRepository, _earningService) as IProcess;
-                }
-                else if (needsISecurityRepository && needsIGetDividendsService)
-                {
-                    t = Activator.CreateInstance(objectType, _securityRepository, _dividendsService) as IProcess;
-                }
-                else if (needsISecurityRepository && needsIAmazonUtility)
-                {
-                    t = Activator.CreateInstance(objectType, _securityRepository, _amazonUtility) as IProcess;
-                }
 
-                else
-                {
-                    throw new Exception("Constructor not defined");
-                }
+                t = Activator.CreateInstance(objectType, _serviceFactory) as IProcess;
+               
                 // set a property value
 
                 t.RunTask();
@@ -161,9 +112,6 @@ namespace sqs_processor
                                 try
                                 {
                                     //  string objectToInstantiate = assemblyNamespace + "ProcessUpdateSecurity";
-
-
-
                                     CreateWorkerClass(objectToInstantiate);
                                   
                                 }
@@ -215,7 +163,7 @@ namespace sqs_processor
                 // var t=(IProcess) System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("ProcessUpdateSecurity");
 
 
-                //CreateWorkerClass("sqs_processor.Processes.ProcessPreferredGainers");
+               // CreateWorkerClass("sqs_processor.Processes.ProcessDroppers");
 
 
                 await Task.Delay(10000, stoppingToken);
@@ -223,3 +171,67 @@ namespace sqs_processor
         }
     }
 }
+
+
+/*
+               if (needsISecurityRepository && !needsIGetSecurityService && !needsIGetEarningService && !needsIGetDividendsService && !needsIAmazonUtility)
+               {
+                   t = Activator.CreateInstance(objectType, _securityRepository) as IProcess;
+               }
+               else if (needsISecurityRepository && needsIGetSecurityService)
+               {
+                   t = Activator.CreateInstance(objectType, _securityRepository, _securityService) as IProcess;
+               }
+               else if (needsISecurityRepository && needsIGetEarningService)
+               {
+                   t = Activator.CreateInstance(objectType, _securityRepository, _earningService) as IProcess;
+               }
+               else if (needsISecurityRepository && needsIGetDividendsService)
+               {
+                   t = Activator.CreateInstance(objectType, _securityRepository, _dividendsService) as IProcess;
+               }
+               else if (needsISecurityRepository && needsIAmazonUtility)
+               {
+                   t = Activator.CreateInstance(objectType, _securityRepository, _amazonUtility) as IProcess;
+               }
+
+               else
+               {
+                   throw new Exception("Constructor not defined");
+               }
+               */
+
+
+/*
+                var parameters = constructorInfoObj[0].GetParameters();
+                foreach (var parameter in parameters)
+                {
+                    if (parameter.ParameterType.Name == "ISecuritiesRepository")
+                    {
+                        needsISecurityRepository = true;
+                    }
+                    if (parameter.ParameterType.Name == "IGetSecurityService")
+                    {
+                        needsIGetSecurityService = true;
+
+                    }
+                    if (parameter.ParameterType.Name == "IGetEarningsService")
+                    {
+                        needsIGetEarningService = true;
+
+                    }
+                    if (parameter.ParameterType.Name == "IGetDividendsServices")
+                    {
+                        needsIGetDividendsService = true;
+
+                    }
+                    if (parameter.ParameterType.Name == "IAmazonUtility")
+                    {
+                        needsIAmazonUtility = true;
+
+                    }
+                    
+
+
+                }
+                */

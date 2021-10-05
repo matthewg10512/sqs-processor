@@ -4,6 +4,8 @@ using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using sqs_processor.Services.Factories;
+
 
 namespace sqs_processor.Processes
 {
@@ -11,10 +13,10 @@ namespace sqs_processor.Processes
     {
         private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetSecurityService _securityService;
-        public ProcessUpdateSecurity(ISecuritiesRepository securityRepository, IGetSecurityService securityService)
+        public ProcessUpdateSecurity(IServiceFactory serviceFactory)
         {
-            _securityRepository = securityRepository;
-            _securityService = securityService;
+            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _securityService = serviceFactory.GetGetSecurityService();
     }
 
         public void RunTask()

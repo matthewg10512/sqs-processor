@@ -4,6 +4,7 @@ using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using sqs_processor.Services.Factories;
 
 namespace sqs_processor.Processes
 {
@@ -11,10 +12,10 @@ namespace sqs_processor.Processes
     {
         private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetDividendsServices _dividendService;
-        public ProcessFutureDividends(ISecuritiesRepository securityRepository, IGetDividendsServices dividendService)
+        public ProcessFutureDividends(IServiceFactory serviceFactory)
         {
-            _securityRepository = securityRepository;
-            _dividendService = dividendService;
+            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _dividendService = serviceFactory.GetDividendsServices();
         }
 
         public void RunTask()

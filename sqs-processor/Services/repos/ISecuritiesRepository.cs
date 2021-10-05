@@ -73,10 +73,14 @@ namespace sqs_processor.Services.repos
 
         public List<AutoSecurityTrade> ProcessAutoSecurityTrades(List<AutoSecurityTrade> securityTrades);
 
-        public List<tempSecurityAlerts> SecurityAlertCheck(int alertTypeId);
+        public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType);
 
-        public string ConvertStringSecurityAlertCheck(List<tempSecurityAlerts> tempSecurityAlerts);
+        public string ConvertStringSecurityAlertCheck(List<Security> securities);
 
+        public SecurityAlertType GetSecurityAlertType(int id);
+
+        public bool SecurityAlertTradesExists(SecurityAlert securityAlert);
+        public List<Security> ProcessSecurityAlerts(List<Security> securities, SecurityAlertType securityAlertType);
 
     }
 }

@@ -5,6 +5,7 @@ using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using sqs_processor.Services.Factories;
 
 namespace sqs_processor.Processes
 {
@@ -12,10 +13,10 @@ namespace sqs_processor.Processes
     {
         private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetEarningsService _earningService;
-        public ProcessFutureEarnings(ISecuritiesRepository securityRepository, IGetEarningsService earningService)
+        public ProcessFutureEarnings(IServiceFactory serviceFactory)
         {
-            _securityRepository = securityRepository;
-            _earningService = earningService;
+            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _earningService = serviceFactory.GetEarningsService();
     }
 
         public void RunTask()

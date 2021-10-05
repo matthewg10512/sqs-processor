@@ -5,7 +5,7 @@ using System.Text;
 
 namespace sqs_processor.Services.Network
 {
-    interface IGetSecurityService
+   public interface IGetSecurityService
     {
         string GetStringHtml(string symbol);
         List<SecurityForUpdateDto> TransformData(string html, string symbol);

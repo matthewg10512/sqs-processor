@@ -1615,6 +1615,14 @@ namespace sqs_processor.Services.repos
             Save();
         }
 
+
+        public void AddSecurityAlert(SecurityAlert securityAlert)
+        {
+
+            _context.SecurityAlerts.Add(securityAlert);
+            Save();
+        }
+        
         public void AddSecurityTradeHistory(AutoSecurityTrade securityTradeHistory)
         {
 
@@ -1623,33 +1631,103 @@ namespace sqs_processor.Services.repos
         }
 
 
-        public List<tempSecurityAlerts> SecurityAlertCheck(int alertTypeId)
+        public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType)
         {
-            string sql = "CALL `securities`.`SecurityAlertCheck`("+ alertTypeId.ToString() + ")";
+            List<Security> securities = new List<Security>();
+            if (securityAlertType.PercentageCheck > 0)
+            {
+                securities = _context.Securities.Where(x => x.PercentageChange > securityAlertType.PercentageCheck).ToList();
+            }
+            else
+            {
+                securities = _context.Securities.Where(x => x.PercentageChange < securityAlertType.PercentageCheck).ToList();
+            }
 
-            var results = _context.tempSecurityAlerts.FromSqlRaw<tempSecurityAlerts>(sql).ToList();
+            if (securityAlertType.preferred)
+            {
+                securities = securities.Where(x => x.preferred == true).ToList();
+            }
 
-            Save(); 
-            
-            return results;
+
+
+            return securities;
 
 
         }
 
+        public SecurityAlertType GetSecurityAlertType(int id)
+        {
+            return _context.SecurityAlertTypes.Where(x => x.Id == id).First();
+        }
 
-        public string ConvertStringSecurityAlertCheck(List<tempSecurityAlerts> tempSecurityAlerts)
+        public string ConvertStringSecurityAlertCheck(List<Security> securities)
         {
             StringBuilder messageString = new StringBuilder();
 
-            foreach(var tempSecurityAlert in tempSecurityAlerts)
+            foreach(var security in securities)
             {
-                messageString.Append(Environment.NewLine + tempSecurityAlert.symbol + "(" + tempSecurityAlert.percentageChange.ToString() + ") ");
+                messageString.Append(Environment.NewLine + security.Symbol + "(" + security.PercentageChange.ToString() + ") ");
             }
             
 
 
             return messageString.ToString();
         }
+
+
+
+        public bool SecurityAlertTradesExists(SecurityAlert securityAlert)
+        {
+
+
+            DateTime dateRecorded = new DateTime(securityAlert.dateRecorded.Year, securityAlert.dateRecorded.Month, securityAlert.dateRecorded.Day, 0, 0, 0);
+            var results = _context.SecurityAlerts.Where(x => x.SecurityId == securityAlert.SecurityId 
+            && x.dateRecorded > dateRecorded 
+            && x.alertType == securityAlert.alertType).ToList();
+
+
+            return results.Count() > 0;
+
+           
+        }
+
+
+
+
+
+
+
+
+
+        public List<Security> ProcessSecurityAlerts(List<Security> securities, SecurityAlertType securityAlertType)
+        {
+            for (int i = 0; i < securities.Count; i++)
+            {
+
+                DateTime dateRecorded = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day, DateTime.UtcNow.Hour, DateTime.UtcNow.Minute, DateTime.UtcNow.Second, DateTimeKind.Utc);
+                SecurityAlert securityAlert = new SecurityAlert();
+                securityAlert.SecurityId = securities[i].Id;
+                securityAlert.alertType = securityAlertType.Id;
+                securityAlert.dateRecorded = dateRecorded;
+
+
+                if (SecurityAlertTradesExists(securityAlert))
+                {
+                    securities.RemoveAt(i);
+                    i--;
+                }
+                else
+                {
+                    AddSecurityAlert(securityAlert);
+                }
+
+            }
+            return securities;
+        }
+
+
+
+
 
 
 

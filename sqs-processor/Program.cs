@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using sqs_processor.DbContexts;
 using sqs_processor.Services.amazon;
+using sqs_processor.Services.Factories;
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
@@ -49,8 +50,10 @@ namespace sqs_processor
                     string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
 
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
+                    
+                    
                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
-
+                    services.AddScoped<IServiceFactory, ServiceFactory>();
 
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion
                , builder =>
