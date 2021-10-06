@@ -32,20 +32,12 @@ namespace sqs_processor
     {
         private const string assemblyNamespace = "sqs_processor.Processes.";
         private readonly ILogger<Worker> _logger;
-        private readonly ISecuritiesRepository _securityRepository;
-        private readonly IGetSecurityService _securityService;
-        private readonly IGetEarningsService _earningService;
-        private readonly IGetDividendsServices _dividendsService;
-        private readonly IAmazonUtility _amazonUtility;
+        
         private readonly IServiceFactory _serviceFactory;
         public Worker(ILogger<Worker> logger, IServiceProvider serviceProvider)
         {
             _logger = logger;
-            _securityRepository = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<ISecuritiesRepository>();
-            _securityService = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IGetSecurityService>();
-            _earningService = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IGetEarningsService>();
-            _dividendsService = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IGetDividendsServices>();
-            _amazonUtility = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IAmazonUtility>();
+            
             _serviceFactory = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IServiceFactory>();
         }
 
@@ -54,24 +46,11 @@ namespace sqs_processor
             var objectType = Type.GetType(objectToInstantiate);
             if (objectType != null)
             {
-                bool needsISecurityRepository = false;
-                bool needsIGetSecurityService = false;
-                bool needsIGetEarningService = false;
-                bool needsIGetDividendsService = false;
-                bool needsIAmazonUtility = false;
+            
                 ConstructorInfo[] constructorInfoObj = objectType.GetConstructors();
-                //BindingFlags.Instance | BindingFlags.Public, null,
-                //CallingConventions.HasThis, types, null);
-
-                //if(objectType.declared.dec)
                 
-                //info[0].ParameterType.Name
                 IProcess t;
-
                 t = Activator.CreateInstance(objectType, _serviceFactory) as IProcess;
-               
-                // set a property value
-
                 t.RunTask();
             }
 
@@ -163,7 +142,7 @@ namespace sqs_processor
                 // var t=(IProcess) System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("ProcessUpdateSecurity");
 
 
-               // CreateWorkerClass("sqs_processor.Processes.ProcessDroppers");
+                CreateWorkerClass("sqs_processor.Processes.ProcessDroppers");
 
 
                 await Task.Delay(10000, stoppingToken);
