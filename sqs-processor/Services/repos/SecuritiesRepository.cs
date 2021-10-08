@@ -1633,8 +1633,8 @@ namespace sqs_processor.Services.repos
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType)
         {
-
-            DateTime dateRecorded = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day, 0, 0, 0, DateTimeKind.Utc);
+            _context.Entry(_context.Securities).Reload();
+            DateTime dateRecorded = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day-1, 0, 0, 0, DateTimeKind.Utc);
             List<Security> securities = new List<Security>();
             if (securityAlertType.PercentageCheck > 0)
             {

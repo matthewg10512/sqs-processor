@@ -50,9 +50,9 @@ namespace sqs_processor
                     string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
 
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
-                    
-                    
-                    sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
+
+                    sqlConnection = sqlConnection.Replace("EnvironmentPassword", "Wincaliber07!");
+                    // sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
                     services.AddScoped<IServiceFactory, ServiceFactory>();
 
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion
