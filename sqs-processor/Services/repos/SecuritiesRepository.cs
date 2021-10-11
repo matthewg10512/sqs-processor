@@ -1633,26 +1633,27 @@ namespace sqs_processor.Services.repos
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType)
         {
-           // _context.Entry(_context.Securities).Reload();
+
+            var collection = _context.Securities as IQueryable<Security>;
+
             DateTime dateRecorded = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.UtcNow.Day, 0, 0, 0, DateTimeKind.Utc);
-            List<Security> securities = new List<Security>();
             if (securityAlertType.PercentageCheck > 0)
             {
-                securities = _context.Securities.Where(x => x.PercentageChange > securityAlertType.PercentageCheck  && x.LastModified > dateRecorded).ToList();
+                collection = collection.Where(x => x.PercentageChange > securityAlertType.PercentageCheck  && x.LastModified > dateRecorded);
             }
             else
             {
-                securities = _context.Securities.Where(x => x.PercentageChange < securityAlertType.PercentageCheck && x.LastModified > dateRecorded).ToList();
+                collection = collection.Where(x => x.PercentageChange < securityAlertType.PercentageCheck && x.LastModified > dateRecorded);
             }
 
             if (securityAlertType.preferred)
             {
-                securities = securities.Where(x => x.preferred == true).ToList();
+                collection = collection.Where(x => x.preferred == true);
             }
 
 
 
-            return securities;
+            return collection.ToList();
 
 
         }

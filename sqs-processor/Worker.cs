@@ -130,7 +130,7 @@ namespace sqs_processor
                         Console.WriteLine("no Messages");
                     }
 
-                    
+                    //CreateWorkerClass("sqs_processor.Processes.ProcessGainers");
 
                 }
                 catch (Exception ex)
@@ -142,7 +142,7 @@ namespace sqs_processor
                 // var t=(IProcess) System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("ProcessUpdateSecurity");
 
 
-               // CreateWorkerClass("sqs_processor.Processes.ProcessGainers");
+               
 
 
                 await Task.Delay(10000, stoppingToken);
