@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text;
 
 namespace sqs_processor.Entities
 {
+    [Display(Name = "SecurityAlertType")]
     public class SecurityAlertType
     {
+        [Key]
         public int Id { get; set; }
         public string alertName { get; set; }
 

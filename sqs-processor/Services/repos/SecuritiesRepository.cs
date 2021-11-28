@@ -7,13 +7,34 @@ using sqs_processor.Models;
 using sqs_processor.ResourceParameters;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace sqs_processor.Services.repos
 {
+
+    public enum SQLCallType
+    {
+        Update,
+        Insert
+    }
+
+    public class FieldValue
+    {
+        public FieldValue(int fldInsert)
+        {
+            fieldInsert = fldInsert;
+        }
+       public string field { get; set; }
+        public string value { get; set; }
+        public int fieldInsert { get; set; }
+    }
+
     public class SecuritiesRepository : ISecuritiesRepository, IDisposable
     {
         private readonly IConfiguration _config;
@@ -23,6 +44,7 @@ namespace sqs_processor.Services.repos
 
         public SecuritiesRepository(SecuritiesLibraryContext context, IConfiguration config, IMapper mapper)
         {
+
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _mapper = mapper;
@@ -251,6 +273,7 @@ namespace sqs_processor.Services.repos
 
             return _context.Earnings.Where(x => x.SecurityId == securityId).ToList();
         }
+
 
         public List<EarningDto> GetEarnings(List<EarningDto> earnings)
         {
@@ -517,19 +540,36 @@ namespace sqs_processor.Services.repos
 
 
 
-        public IEnumerable<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
+        public List<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
         {
             var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
 
 
             collection = collection.Where(x => x.SecurityId == securityId);
-
-            collection = collection.Where(x => x.HistoricDate >= historicalPriceResourceParameters.HistoricDateLow && x.HistoricDate <= historicalPriceResourceParameters.HistoricDateHigh);
-
+            if (historicalPriceResourceParameters.HistoricDateLow.HasValue && historicalPriceResourceParameters.HistoricDateHigh.HasValue)
+            {
+                collection = collection.Where(x => x.HistoricDate >= historicalPriceResourceParameters.HistoricDateLow && x.HistoricDate <= historicalPriceResourceParameters.HistoricDateHigh);
+            }
             return collection.ToList();
         }
 
+        public HistoricalPrice GetHistoricalPricesRange(int securityId)
+        {
+            var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
 
+
+            return collection.Where(x => x.SecurityId == securityId).Select(x=> new HistoricalPrice {Id = x.Id, HistoricDate = x.HistoricDate  }).OrderByDescending(x=>x.HistoricDate).FirstOrDefault();
+        }
+        
+        /*
+        public HistoricalPrice GetLastHistoricalPrices(int securityId)
+        {
+            var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
+
+
+            return collection.Where(x => x.SecurityId == securityId).Select(x => new HistoricalPrice { Id = x.Id, HistoricDate = x.HistoricDate }).OrderByDescending(x => x.HistoricDate).FirstOrDefault();
+        }
+        */
 
 
         public void UpdateEarnings(List<EarningDto> earnings, Security security)
@@ -679,6 +719,220 @@ namespace sqs_processor.Services.repos
 
         }
 
+        private FieldValue GetFieldAndValue(Object record, PropertyInfo property, int fieldInsert, int sqlCallType)
+        {
+            FieldValue fieldValue = new FieldValue(fieldInsert);
+            var propertyType = property.PropertyType.Name;
+            var propertyValue = property.GetValue(record, null);
+            string fieldName = property.Name;
+            string valueRec = "";
+            switch (propertyType)
+            {
+                case "Int32":
+                    int recValueInt = (Int32)propertyValue;
+                    valueRec = recValueInt.ToString();
+                    break;
+                case "String":
+                    string recValueStr = (string)propertyValue;
+                    if (recValueStr == null)
+                    {
+                        return fieldValue;
+                    }
+                    valueRec = "'" + recValueStr.Replace("'","''")  + "'";
+                    break;
+                case "DateTime":
+                    string recValuestr = ((DateTime)propertyValue).ToString("yyyy-MM-dd HH:mm:ss");
+                    valueRec = "'" + recValuestr + "'";
+                    break;
+                case "Decimal":
+                    decimal recValueDec = (decimal)propertyValue;
+                    valueRec = recValueDec.ToString();
+
+                    break;
+                case "Boolean":
+                    bool recValueBool = (bool)propertyValue;
+                    valueRec = recValueBool ? "1" : "0";
+                    break;
+                case "Nullable`1":
+                    var recValueNull = propertyValue;
+                    if(recValueNull == null)
+                    {
+                        return fieldValue;
+                    }
+
+                    var genericTypes = property.PropertyType.GenericTypeArguments;
+                    string nullableTypeName="";
+                    foreach (var genericType in genericTypes)
+                    {
+                        nullableTypeName = genericType.Name;
+                    }
+                    if (nullableTypeName !=string.Empty)
+                    {
+                        return NullGetFieldAndValue(fieldValue, nullableTypeName, propertyValue, fieldName, sqlCallType);
+                    }
+                    break;
+            }
+
+
+
+            switch (sqlCallType)
+            {
+                case (int)SQLCallType.Update:
+                    if (fieldValue.fieldInsert > 0)
+                    {
+                        fieldValue.value += ",";
+                    }
+                    fieldValue.value += fieldName + " = " + valueRec;
+                    fieldValue.fieldInsert += 1;
+                    break;
+                case (int)SQLCallType.Insert:
+                    if (fieldValue.fieldInsert > 0)
+                    {
+                        fieldValue.field += ",";
+                        fieldValue.value += ",";
+                    }
+                    fieldValue.field += fieldName;
+                    fieldValue.value += valueRec;
+                    fieldValue.fieldInsert += 1;
+                    break;
+            }
+           
+
+
+            return fieldValue;
+        }
+
+
+        public FieldValue NullGetFieldAndValue(FieldValue fieldValue, string nullableTypeName, object propertyValue, string fieldName, int sqlCallType)
+        {
+            string valueRec = "";
+            switch (nullableTypeName)
+            {
+
+                case "Int32":
+                    int recValueInt = (Int32)propertyValue;
+                    valueRec = recValueInt.ToString();
+                    break;
+                case "String":
+                    string recValueStr = (string)propertyValue;
+                    if (recValueStr == null)
+                    {
+                        return fieldValue;
+                    }
+                    valueRec = "'" + recValueStr.Replace("'", "''") + "'";
+                    break;
+                case "DateTime":
+                    
+                    string recValuestr = ((DateTime)propertyValue).ToString("yyyy-MM-dd HH:mm:ss");
+                    valueRec = "'" + recValuestr + "'";
+                    break;
+                case "Decimal":
+                    decimal recValueDec = (decimal)propertyValue;
+                    valueRec = recValueDec.ToString();
+                    break;
+                case "Boolean":
+                    bool recValueBool = (bool)propertyValue;
+                    valueRec = recValueBool ? "1" : "0";
+                    break;
+               
+            }
+
+            switch (sqlCallType)
+            {
+                case (int)SQLCallType.Update:
+                    if (fieldValue.fieldInsert > 0)
+                    {
+                        fieldValue.value += ",";
+                    }
+                    fieldValue.value += fieldName + " = " + valueRec;
+                    fieldValue.fieldInsert += 1;
+                    break;
+                case (int)SQLCallType.Insert:
+                    if (fieldValue.fieldInsert > 0)
+                    {
+                        fieldValue.field += ",";
+                        fieldValue.value += ",";
+                    }
+                    fieldValue.field += fieldName;
+                    fieldValue.value += valueRec;
+                    fieldValue.fieldInsert += 1;
+                    break;
+            }
+
+            return fieldValue;
+        }
+
+
+
+
+      
+        /// <summary>
+        /// Gets the dividends from the database compared to what dividends are in there
+        /// </summary>
+        /// <param name="dividends"></param>
+        /// <param name="currentDividends"></param>
+        /// <returns></returns>
+        private List<SecurityPurchaseCheck> GetSecurityPurchaseCheckList(List<SecurityPurchaseCheckDto> dividends, List<SecurityPurchaseCheck> currentSecurityPurchaseChecks)
+        {
+       
+
+            List<SecurityPurchaseCheck> securityPurchaseChanges = dividends.Join(currentSecurityPurchaseChecks, x => x.SecurityId,
+                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => new SecurityPurchaseCheck
+                {
+                    SecurityId = x.query1.SecurityId,
+                    Id = x.query2.Id,
+                    PurchasePrice = x.query1.PurchasePrice,
+                    DateCreated = x.query1.DateCreated,
+                    DateModified = x.query1.DateModified,
+                    Shares = x.query1.Shares,
+
+                }).ToList();
+
+
+            return securityPurchaseChanges;
+
+        }
+        public void UpsertSecurityPurchaseChecks(List<SecurityPurchaseCheckDto> securityPurchaseChecks)
+        {
+            //var secuPurchaseRec = _context.SecurityPurchaseChecks.FirstOrDefault(x => x.SecurityId == securityPurchaseCheck.SecurityId);
+           
+
+            List<SecurityPurchaseCheck> currentSecuritPurchaseChecks = _context.SecurityPurchaseChecks.ToList();
+
+
+
+            List<SecurityPurchaseCheck>  existingSecurityPurchaseCheck = GetSecurityPurchaseCheckList(securityPurchaseChecks, currentSecuritPurchaseChecks);
+
+
+
+            
+            var updatedAlready = existingSecurityPurchaseCheck.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
+   y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.Shares == o.query2.Shares
+   && o.query1.DateModified == o.query2.DateModified
+   && o.query1.DateCreated == o.query2.DateCreated
+   && o.query1.PurchasePrice == o.query2.PurchasePrice
+   && o.query1.Shares == o.query2.Shares
+   ).Select(x => x.query1).ToList();
+
+
+
+            existingSecurityPurchaseCheck = existingSecurityPurchaseCheck.Except(updatedAlready).ToList();
+
+
+            UpdateRecords(existingSecurityPurchaseCheck);
+
+
+            /*Will find any records that are new and add them to the DB*/
+            var newRecords = securityPurchaseChecks.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
+             y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => x.query1);
+
+
+           var newSecurityPurchases = securityPurchaseChecks.Except(newRecords).ToList();
+            var securityCheckAdd = _mapper.Map<List<SecurityPurchaseCheck>>(newSecurityPurchases).Cast<object>();
+
+            AddRecords(securityCheckAdd);
+            
+        }
         private void UpdateDividends(List<DividendDto> dividends, List<Dividend> currentDividends)
         {
 
@@ -772,7 +1026,7 @@ namespace sqs_processor.Services.repos
         }
 
 
-        public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices, Security security)
+        public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices)
         {
 
             if (historicalPrices.Count == 0)
@@ -815,6 +1069,7 @@ namespace sqs_processor.Services.repos
             }
 
 
+
         }
 
         private void dividendsUpdate(List<Dividend> dividends)
@@ -854,138 +1109,23 @@ namespace sqs_processor.Services.repos
         private void historicPriceUpdate(List<HistoricalPrice> historicalPrices)
         {
             //   _context.BulkUpdate(historicalPrices);
-
-
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (HistoricalPrice historicalPrice in historicalPrices)
-            {
-
-                // Id, SecurityId, Open, Close, High, Low, Volume, HistoricDate, PercentChange
-
-                sqlCall += "UPDATE HistoricalPrices SET Open = " + historicalPrice.Open + ", Close= " + historicalPrice.Close + " , " +
-                "High= " + historicalPrice.High + ", Low= " +
-                historicalPrice.Low + ", Volume= " + historicalPrice.Volume +
-                ", PercentChange= " + historicalPrice.PercentChange +
-                " WHERE " +
-                " SecurityId = " + historicalPrice.SecurityId +
-                " AND HistoricDate = '" + historicalPrice.HistoricDate.ToString("yyyy-MM-dd") + "'; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sercurityLoop = 0;
-                    sqlCall = "";
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
-
+            UpdateRecords(historicalPrices);
         }
 
         private void historicPriceAdd(List<HistoricalPrice> historicalPrices)
         {
 
             //  _context.BulkInsert(historicalPrices);
+            AddRecords(historicalPrices);
 
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (HistoricalPrice historicalPrice in historicalPrices)
-            {
-
-                // Id, SecurityId, Open, Close, High, Low, Volume, HistoricDate, PercentChange
-                if (sqlCall == "")
-                {
-                    sqlCall += "INSERT INTO HistoricalPrices (SecurityId, Open, Close, High, Low, Volume, HistoricDate, PercentChange) VALUES";
-                }
-                else
-                {
-                    sqlCall += ",";
-                }
-
-                sqlCall += "(" + historicalPrice.SecurityId + ", " +
-                    historicalPrice.Open + ", " +
-                    historicalPrice.Close + ", " +
-                    historicalPrice.High + ", " +
-                    historicalPrice.Low + ", " +
-                    historicalPrice.Volume + ", " +
-                    "'" + historicalPrice.HistoricDate.ToString("yyyy-MM-dd") + "', " +
-                    historicalPrice.PercentChange +
-
-
-                    ")";
-                //" AND HistoricDate = '" + historicalPrice.HistoricDate.ToString("yyyy-MM-dd") + "'; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sqlCall = "";
-                    sercurityLoop = 0;
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
-
+          
 
         }
 
         private void dividendsAdd(List<Dividend> dividends)
         {
             //  _context.BulkInsert(dividends);
-
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (Dividend dividend in dividends)
-            {
-
-                // Id, SecurityId, Open, Close, High, Low, Volume, HistoricDate, PercentChange
-                if (sqlCall == "")
-                {
-                    sqlCall += "INSERT INTO Dividends (SecurityId, AnnouncementDate, Amount, Yield, ExDividendDate, RecordDate, PayableDate) VALUES";
-                }
-                else
-                {
-                    sqlCall += ",";
-                }
-
-                sqlCall += "(" + dividend.SecurityId + ", " +
-                    "'" + dividend.AnnouncementDate.ToString("yyyy-MM-dd") + "', " +
-                    dividend.Amount + ", " +
-                    dividend.Yield + ", " +
-                    "'" + dividend.ExDividendDate.ToString("yyyy-MM-dd") + "', " +
-                    "'" + dividend.RecordDate.ToString("yyyy-MM-dd") + "', " +
-                    "'" + dividend.PayableDate.ToString("yyyy-MM-dd") + "' " +
-
-
-
-                    ")";
-                //" AND HistoricDate = '" + historicalPrice.HistoricDate.ToString("yyyy-MM-dd") + "'; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sqlCall = "";
-                    sercurityLoop = 0;
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
-
-
+            AddRecords(dividends);
         }
 
 
@@ -993,34 +1133,7 @@ namespace sqs_processor.Services.repos
         {
             //  _context.BulkUpdate(earnings);
 
-
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (Earning earning in earnings)
-            {
-
-                // Id, SecurityId, ActualEarningsDate, EPSEstimate, ReportedEPS, GAAPEPS, RevenueEstimate, ActualRevenue, ReportTime
-                sqlCall += "UPDATE Dividends SET EPSEstimate = " + earning.EPSEstimate + ", ReportedEPS= " + earning.ReportedEPS + " , " +
-                "GAAPEPS= " + earning.GAAPEPS + ", RevenueEstimate= " +
-                earning.RevenueEstimate + ", ActualRevenue = " + earning.ActualRevenue + "" +
-                ", ReportTime= '" + earning.ReportTime + "'" +
-                " WHERE " +
-                " SecurityId = " + earning.SecurityId +
-                " AND ActualEarningsDate = '" + earning.ActualEarningsDate.ToString("yyyy-MM-dd") + "'; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sercurityLoop = 0;
-                    sqlCall = "";
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
+            UpdateRecords(earnings);
 
 
         }
@@ -1029,68 +1142,9 @@ namespace sqs_processor.Services.repos
         private void earningsAdd(List<Earning> earnings)
         {
             //   _context.BulkInsert(earnings);
-
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (Earning earning in earnings)
-            {
-
-                // Id, SecurityId, ActualEarningsDate, EPSEstimate, ReportedEPS, GAAPEPS, RevenueEstimate, ActualRevenue, ReportTime
-                if (sqlCall == "")
-                {
-                    sqlCall += "INSERT INTO Earnings (SecurityId, ActualEarningsDate, EPSEstimate, ReportedEPS, GAAPEPS, RevenueEstimate, ActualRevenue, ReportTime) VALUES";
-                }
-                else
-                {
-                    sqlCall += ",";
-                }
-
-                sqlCall += "(" + earning.SecurityId + ", " +
-                    "'" + earning.ActualEarningsDate.ToString("yyyy-MM-dd") + "', " +
-                    earning.EPSEstimate + ", " +
-                    earning.ReportedEPS + ", " +
-                    earning.GAAPEPS + ", " +
-                    earning.RevenueEstimate + ", " +
-                    earning.ActualRevenue + ", " +
-                    "'" + earning.ReportTime + "' " +
-
-
-
-                    ")";
-                //" AND HistoricDate = '" + historicalPrice.HistoricDate.ToString("yyyy-MM-dd") + "'; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sqlCall = "";
-                    sercurityLoop = 0;
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
-
+            AddRecords(earnings);
 
         }
-
-
-
-
-        /*
-        public void DynamicQuery(string sql)
-        {
-            string connectionString = _config.GetConnectionString("FinancialServices");
-            //  using (IDbConnection db = new SqlConnection(ConfigurationManager.ConnectionStrings["FinancialServices"].ConnectionString))
-            using (IDbConnection db = new SqlConnection(connectionString))
-            {
-                db.Execute(sql);
-            }
-        }
-        */
 
 
         public HistoricalPrice GetHistoricPrice(int securityId, DateTime historicDate)
@@ -1110,17 +1164,18 @@ namespace sqs_processor.Services.repos
 
 
 
-        private List<Security> GetSecurities(List<SecurityForUpdateDto> earnings)
+        private List<Security> GetSecurities(List<SecurityForUpdateDto> securities)
         {
 
 
             List<Security> security = _context.Securities.ToList();
-
-            security = earnings.Join(security, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 }).Select(x => new Security
+            
+            security = securities.Join(security, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 }).Select(x => new Security
             {
 
                 Id = x.query2.Id,
                 Symbol = x.query1.Symbol,
+                
                 Name = x.query1.Name == null ? x.query2.Name : x.query1.Name,
                 DayHigh = Decimal.Round(x.query1.DayHigh.Value, 2),
                 DayLow = Decimal.Round(x.query1.DayLow.Value, 2),
@@ -1136,10 +1191,11 @@ namespace sqs_processor.Services.repos
                 Industry = x.query2.Industry,
                 Sector = x.query2.Sector,
                 PercentageChange = x.query1.PercentageChange,
-                preferred = x.query2.preferred
-
-
-
+                preferred = x.query2.preferred,
+                excludeHistorical = x.query2.excludeHistorical,
+                IPOYear = x.query2.IPOYear,
+                Dividend = x.query2.Dividend,
+                DividendDate = x.query2.DividendDate
 
 
             }).ToList();
@@ -1190,7 +1246,7 @@ namespace sqs_processor.Services.repos
                 && o.query1.SecurityType == o.query2.SecurityType
                 && o.query1.PercentageChange == o.query2.PercentageChange
 
-              ).Select(x => x.query1);
+              ).Select(x => x.query1).ToList();
 
 
             dbSecurities = dbSecurities.Except(updatedAlready).ToList();
@@ -1215,62 +1271,7 @@ namespace sqs_processor.Services.repos
 
         public void BulkSaveUpdate(List<Security> securities)
         {
-            /*
-            _context.ChangeTracker.AutoDetectChangesEnabled = false;
-            int info = 1;
-            foreach (Security security in securities)
-            {
-                
-                var entry = _context.Securities.First(e => e.Id == security.Id);
-                _context.Entry(entry).CurrentValues.SetValues(security);
-                Save();
-                info += 1;
-                if (info > 400)
-                {
-                    break;
-                }
-                //var securityRec = _context.Securities.Where()
-                //_context.Update(security);
-            }
-            _context.ChangeTracker.AutoDetectChangesEnabled = true;
-            */
-
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (Security security in securities)
-            {
-
-                sqlCall += "UPDATE Securities SET CurrentPrice = " + security.CurrentPrice + ", YearLow= " + security.YearLow + " , " +
-                "YearHigh= " + security.YearHigh + ", Volume= " +
-                security.Volume + ", DayLow= " + security.DayLow +
-                ", DayHigh= " + security.DayHigh +
-                ", LastModified ='" + security.LastModified.Value.ToString("yyyy-MM-dd HH:mm:ss") + "'" +
-                ", PriorDayOpen=" + security.PriorDayOpen +
-                ", PercentageChange=" + security.PercentageChange +
-                " WHERE " +
-                " Id = " + security.Id + "; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sercurityLoop = 0;
-                    sqlCall = "";
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
-
-
-
-
-            //  _context.BulkUpdate(securities);
-
-
+            UpdateRecords(securities);
 
         }
 
@@ -1424,12 +1425,12 @@ namespace sqs_processor.Services.repos
         }
         */
 
-        public SecurityTasks GetTasks(string taskName)
+        public SecurityTask GetTasks(string taskName)
         {
             return _context.SecurityTasks.FirstOrDefault(x => x.TaskName == taskName);
         }
 
-        public void UpdateTasks(SecurityTasks task)
+        public void UpdateTasks(SecurityTask task)
         {
             _context.SecurityTasks.Update(task);
             Save();
@@ -1446,11 +1447,11 @@ namespace sqs_processor.Services.repos
 
 
 
-        public SecurityPercentageStatistics PercentageChangeGetTasks(string taskName)
+        public SecurityPercentageStatistic PercentageChangeGetTasks(string taskName)
         {
             return _context.SecurityPercentageStatistics.FirstOrDefault();// x => x.TaskName == taskName);
         }
-        public void PercentageChangeUpdateTasks(SecurityPercentageStatistics task)
+        public void PercentageChangeUpdateTasks(SecurityPercentageStatistic task)
         {
             _context.SecurityPercentageStatistics.Update(task);
             Save();
@@ -1557,7 +1558,8 @@ namespace sqs_processor.Services.repos
                     return _context.Securities
                         .Join(_context.AutoSecurityTrades,
                         x => x.Id, y => y.SecurityId, (security, tradeHistory) => new { security, tradeHistory })
-                        .Where(x => x.security.CurrentPrice > x.tradeHistory.PurchasePrice * percentRaise && x.tradeHistory.SellDate == null)
+                        .Where(x => x.security.CurrentPrice > x.tradeHistory.PurchasePrice * percentRaise && x.tradeHistory.SellDate == null
+                        && x.security.LastModified > priorDay)
                         .Select(x =>
                 new AutoSecurityTrade
                 {
@@ -1732,6 +1734,323 @@ namespace sqs_processor.Services.repos
 
 
 
+        public void UpdateRecords(IEnumerable<object> records)
+        {
+            StringBuilder fullStringSqlCall = new StringBuilder();
+            int loopCount = 0;
+            foreach (var record in records)
+            {
+                Type type = record.GetType();
+                var tableName = GetTableName(record);
+                if (tableName == "")
+                {
+                    tableName = type.Name;
+                }
+                string whereStatement = "";
+                string values = "";
+
+                BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+                PropertyInfo[] properties = type.GetProperties(flags);
+                var fieldInsert = 0;
+                values += "";
+                foreach (PropertyInfo property in properties)
+                {
+                    string fieldName = property.Name;
+
+                    // if (fieldName.ToUpper() == "ID")
+                    //{
+                    //  continue;
+                    // }
+                    var custAttributes = property.GetCustomAttributes();
+                    bool isKey = false;
+                    foreach (var custAttribute in custAttributes)
+                    {
+                        if (custAttribute.GetType().Name == "KeyAttribute")
+                        {
+                            //This Property is the key
+                            isKey = true;
+                        }
+
+                    }
+                    if (isKey)
+                    {
+                        var propertyValue = property.GetValue(record, null);
+                        int recValueInt = (Int32)propertyValue;
+                        whereStatement += " WHERE " + fieldName + " = " + recValueInt.ToString() + ";";
+
+                        continue;
+                    }
+
+                    FieldValue fieldValue = GetFieldAndValue(record, property, fieldInsert, (int)SQLCallType.Update);
+                    values += fieldValue.value;
+                    fieldInsert = fieldValue.fieldInsert;
+
+
+
+                }
+
+
+
+
+
+                fullStringSqlCall.Append("UPDATE " + tableName + " SET " + values + whereStatement);
+
+                loopCount += 1;
+                if (loopCount > 300)
+                {
+                    _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
+                    loopCount = 0;
+                    fullStringSqlCall = new StringBuilder();
+                }
+
+            }
+            if (loopCount > 0)
+            {
+                _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
+
+            }
+
+
+
+        }
+
+
+        public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges)
+        {
+            List<CurrentPeakRange> currentPeakRangesInDb = _context.CurrentPeakRanges.ToList();
+            List<CurrentPeakRange> existingPeakRangeDetails = GetCurrentCurrentPeakRanges(currentPeakRangesInDb, currentPeakRanges);
+
+
+            var updatedAlready = existingPeakRangeDetails.Join(currentPeakRangesInDb, x => x.SecurityId,
+               y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
+               && o.query1.RangeDateStart == o.query2.RangeDateStart
+               && o.query1.RangeLength == o.query2.RangeLength
+                && o.query1.PeakRangeCurrentPercentage == o.query2.PeakRangeCurrentPercentage
+               ).Select(x => x.query1).ToList();
+
+
+            existingPeakRangeDetails = existingPeakRangeDetails.Except(updatedAlready).ToList();
+
+
+            UpdateRecords(existingPeakRangeDetails);
+
+
+
+            var newRecords = currentPeakRanges.Join(currentPeakRangesInDb, x => x.SecurityId,
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
+           ).Select(x => x.query1);
+
+
+            currentPeakRanges = currentPeakRanges.Except(newRecords).ToList();
+            List<CurrentPeakRange> newcurrentPeakRange = _mapper.Map<List<CurrentPeakRange>>(currentPeakRanges).ToList();
+
+            if (newcurrentPeakRange.Count > 0)
+            {
+                AddRecords(newcurrentPeakRange);
+            }
+
+        }
+
+
+        private List<CurrentPeakRange> GetCurrentCurrentPeakRanges(List<CurrentPeakRange> currentPeakRangesInDb, List<CurrentPeakRangeDto> currentPeakRanges)
+        {
+
+            List<CurrentPeakRange> existingPeakRangeDetails = currentPeakRanges.Join(currentPeakRangesInDb, x => x.SecurityId,
+              y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => new CurrentPeakRange
+              {
+                  SecurityId = x.query1.SecurityId,
+                  Id = x.query2.Id,
+                  DateCreated = x.query2.DateCreated,
+                  DateModified = x.query1.DateModified,
+                  RangeName = x.query1.RangeName,
+                  RangeLength = x.query1.RangeLength,
+                  RangeDateStart = x.query1.RangeDateStart,
+                  PeakRangeCurrentPercentage = x.query1.PeakRangeCurrentPercentage
+                 
+
+
+              }).ToList();
+
+
+            return existingPeakRangeDetails;
+        }
+
+            
+        private List<PeakRangeDetail> GetCurrentPeakRangeDetails(List<PeakRangeDetail> currentPeakRangeDetails,List<PeakRangeDetailDto> peakRangeDetails)
+        {
+
+            
+            
+
+            List<PeakRangeDetail> existingPeakRangeDetails = peakRangeDetails.Join(currentPeakRangeDetails, x => x.SecurityId,
+              y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
+
+              ).Select(x => new PeakRangeDetail
+              {
+                  SecurityId = x.query1.SecurityId,
+                  Id = x.query2.Id,
+                  DateCreated = x.query2.DateCreated,
+                  DateModified = x.query1.DateModified,
+                  RangeName = x.query1.RangeName,
+                  RangeCount = x.query1.RangeCount,
+                  RangeLength = x.query1.RangeLength,
+                  MaxRangeLength = x.query1.MaxRangeLength,
+                  MaxRangeDateStart = x.query1.MaxRangeDateStart,
+                  MaxRangeDateEnd = x.query1.MaxRangeDateEnd
+                  /*
+  
+        public DateTime DateCreated { get; set; }
+        public DateTime DateModified { get; set; }
+        public int RangeCount { get; set; }
+        public int RangeLength { get; set; }
+        public int MaxRangeLength { get; set; }
+        public DateTime MaxRangeDateStart { get; set; }
+        public DateTime MaxRangeDateEnd { get; set; }
+ }
+                   */
+
+              }).ToList();
+
+
+            return existingPeakRangeDetails;
+        }
+
+
+
+        public void UpsertPeakRangeDetails(List<PeakRangeDetailDto> peakRangeDetails)
+        {
+
+            List<PeakRangeDetail> currentPeakRangeDetails = _context.PeakRangeDetails.ToList();
+            List<PeakRangeDetail> existingPeakRangeDetails = GetCurrentPeakRangeDetails(currentPeakRangeDetails, peakRangeDetails);
+
+
+            var updatedAlready = existingPeakRangeDetails.Join(currentPeakRangeDetails, x => x.SecurityId,
+               y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
+               && o.query1.MaxRangeDateEnd == o.query2.MaxRangeDateEnd
+               && o.query1.MaxRangeDateStart == o.query2.MaxRangeDateStart
+               && o.query1.MaxRangeLength == o.query2.MaxRangeLength
+               && o.query1.RangeCount == o.query2.RangeCount
+               && o.query1.RangeLength == o.query2.RangeLength
+               ).Select(x => x.query1).ToList();
+
+
+            existingPeakRangeDetails = existingPeakRangeDetails.Except(updatedAlready).ToList();
+
+
+            UpdateRecords(existingPeakRangeDetails);
+
+
+
+            var newRecords = peakRangeDetails.Join(currentPeakRangeDetails, x => x.SecurityId,
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
+           ).Select(x => x.query1);
+
+
+            peakRangeDetails = peakRangeDetails.Except(newRecords).ToList();
+            List<PeakRangeDetail> newpeakRangeDetails = _mapper.Map<List<PeakRangeDetail>>(peakRangeDetails).ToList();
+
+            if (newpeakRangeDetails.Count > 0)
+            {
+                AddRecords(newpeakRangeDetails);
+            }
+
+
+
+
+
+
+
+        }
+
+        public static string GetTableName(object c)
+        {
+            string displayName = "";
+            DisplayAttribute dp = c.GetType().GetCustomAttributes().Cast<DisplayAttribute>().SingleOrDefault();
+            if (dp != null)
+            {
+                displayName = dp.Name;
+            }
+            return displayName;
+        }
+
+        public void AddRecords(IEnumerable<object> records)
+        {
+
+            StringBuilder fullStringSqlCall = new StringBuilder();
+            int loopCount = 0;
+            foreach (var record in records)
+            {
+                Type type = record.GetType();
+
+
+                var tableName = GetTableName(record);
+                if (tableName == "")
+                {
+                    tableName = type.Name;
+                }
+
+                string fields = "";
+                string values = "";
+
+                BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+                PropertyInfo[] properties = type.GetProperties(flags);
+                var fieldInsert = 0;
+                fields += "(";
+                values += "(";
+                foreach (PropertyInfo property in properties)
+                {
+                    string fieldName = property.Name;
+                    var info = property.GetValue(record, null);
+                    // if (fieldName.ToUpper() == "ID")
+                    //{
+                    //  continue;
+                    // }
+                    var custAttributes = property.GetCustomAttributes();
+                    bool isKey = false;
+                    foreach (var custAttribute in custAttributes)
+                    {
+                        if (custAttribute.GetType().Name == "KeyAttribute")
+                        {
+                            //This Property is the key
+                            isKey = true;
+                        }
+
+                    }
+                    // fields +=
+                    if (isKey)
+                    {
+                        continue;
+                    }
+                    FieldValue fieldValue = GetFieldAndValue(record, property, fieldInsert, (int)SQLCallType.Insert);
+                    fields += fieldValue.field;
+                    values += fieldValue.value;
+                    fieldInsert = fieldValue.fieldInsert;
+
+                }
+
+                fields += ")";
+                values += ");";
+
+
+                fullStringSqlCall.Append("INSERT INTO " + tableName + fields + " VALUES " + values);
+
+                loopCount += 1;
+                if (loopCount > 100)
+                {
+                    _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
+                    loopCount = 0;
+                    fullStringSqlCall = new StringBuilder();
+                }
+
+            }
+            if (loopCount > 0)
+            {
+                _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
+
+            }
+        }
+
+
 
 
 
@@ -1739,3 +2058,46 @@ namespace sqs_processor.Services.repos
 
     }
 }
+
+/*
+ *  Security record = new Security();
+
+            Type type = record.GetType();
+            string purchtype = type.Name;
+            //To restrict return properties. If all properties are required don't provide flag.
+            BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+            PropertyInfo[] properties = type.GetProperties(flags);
+
+            foreach (PropertyInfo property in properties)
+            {
+                
+               var types = property.GetCustomAttributes();
+                foreach(var t in types)
+                {
+                    if (t.GetType().Name== "KeyAttribute"){
+                        //This Property is the key
+                    }
+                    
+                }
+                Console.WriteLine("Name: " + property.Name + ", Value: " + property.GetValue(record, null));
+                var detail = property.GetValue(record, null);
+                var info = property.PropertyType.Name;
+                
+                    if(info == "Nullable`1")
+                {
+                    var genericTypes = property.PropertyType.GenericTypeArguments;
+                    string nullableTypeName;
+                    foreach(var genericType in genericTypes)
+                    {
+                        nullableTypeName = genericType.Name;
+                    }
+                }
+                //Int32
+                //DateTime
+                //Decimal
+                //String == null
+                //Nullable`1
+                //Boolean
+            }
+
+*/

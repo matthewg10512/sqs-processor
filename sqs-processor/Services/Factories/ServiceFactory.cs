@@ -2,6 +2,7 @@
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
+using sqs_processor.Services.Network.HistoricalPrices;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -17,18 +18,21 @@ namespace sqs_processor.Services.Factories
         private readonly IGetEarningsService _earningService;
         private readonly IGetDividendsServices _dividendsService;
         private readonly IAmazonUtility _amazonUtility;
-
+        private readonly IGetHistoricalPricesService _historicalPriceService;
         public ServiceFactory(ISecuritiesRepository securityRepository,IGetSecurityService securityService,
         IGetEarningsService earningService,
         IGetDividendsServices dividendsService,
-        IAmazonUtility amazonUtility)
+        IAmazonUtility amazonUtility,
+        IGetHistoricalPricesService historicalPriceService)
         {
             _securityRepository = securityRepository;
             _securityService =securityService;
             _earningService = earningService;
             _dividendsService = dividendsService;
             _amazonUtility = amazonUtility;
-    
+            _historicalPriceService = historicalPriceService;
+
+
         }
 
         public ISecuritiesRepository GetSecuritiesRepository()
@@ -55,6 +59,12 @@ namespace sqs_processor.Services.Factories
         {
             return _amazonUtility;
         }
+
+        public IGetHistoricalPricesService GetHistoricalPricesService()
+        {
+            return _historicalPriceService;
+        }
+        
 
     }
 }

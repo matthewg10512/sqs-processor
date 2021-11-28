@@ -25,13 +25,17 @@ namespace sqs_processor.DbContexts
 
         public DbSet<Earning> Earnings { get; set; }
 
-        public DbSet<SecurityTasks> SecurityTasks { get; set; }
+        public DbSet<SecurityTask> SecurityTasks { get; set; }
 
         public DbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
-        public DbSet<SecurityPercentageStatistics> SecurityPercentageStatistics { get; set; }
+        public DbSet<SecurityPercentageStatistic> SecurityPercentageStatistics { get; set; }
         public DbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
+        public DbSet<SecurityPurchaseCheck> SecurityPurchaseChecks { get; set; }
 
+        public DbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
         public DbSet<SecurityAlert> SecurityAlerts { get; set; }
+
+        public DbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
 
         public void Save()
         {

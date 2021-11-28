@@ -13,18 +13,21 @@ namespace sqs_processor.DbContexts
         IDbSet<Security> Securities { get; set; }
         IDbSet<AutoSecurityTrade> AutoSecurityTrades { get; set; }
         IDbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
-        DbSet<SecurityTasks> SecurityTasks { get; set; }
+        DbSet<SecurityTask> SecurityTasks { get; set; }
         IDbSet<Dividend> Dividends { get; set; }
         IDbSet<Earning> Earnings { get; set; }
         IDbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
         IDbSet<SecurityAlert> SecurityAlerts { get; set; }
+        IDbSet<SecurityPurchaseCheck> SecurityPurchaseChecks { get; set; }
+        IDbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
+        IDbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
 
+        
 
-        //  IDbSet<HistoricalPrice> HistoricalPrices { get; set; }
         //  IDbSet<Earning> Earnings { get; set; }
         //List<HistoricalPrice> DapperHistoricalPrices { get; set; }
         void Save();
-        DbSet<SecurityPercentageStatistics> SecurityPercentageStatistics { get; set; }
+        DbSet<SecurityPercentageStatistic> SecurityPercentageStatistics { get; set; }
 
     }
 }

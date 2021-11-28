@@ -36,22 +36,21 @@ namespace sqs_processor.Services.Network
             List<SecurityForUpdateDto> securities = new List<SecurityForUpdateDto>();
             foreach (var row in securitiesFromApi)
             {
-
                 SecurityForUpdateDto security = new SecurityForUpdateDto()
                 {
                     Name = row.name,
                     Symbol = row.symbol,
-                    DayHigh = (decimal)(row.dayHigh.HasValue ? row.dayHigh.Value : 0),
-                    DayLow = (decimal)(row.dayLow.HasValue ? row.dayLow.Value : 0),
-                    YearHigh = (decimal)(row.yearHigh.HasValue ? row.yearHigh.Value : 0),
-                    YearLow = (decimal)(row.yearLow.HasValue ? row.yearLow.Value : 0),
-                    CurrentPrice = (decimal)(row.price.HasValue ? row.price.Value : 0),
+                    DayHigh = (decimal)(row.dayHigh.HasValue ? Math.Round(row.dayHigh.Value,2) : 0),
+                    DayLow = (decimal)(row.dayLow.HasValue ? Math.Round(row.dayLow.Value, 2) : 0),
+                    YearHigh = (decimal)(row.yearHigh.HasValue ? Math.Round(row.yearHigh.Value, 2) : 0),
+                    YearLow = (decimal)(row.yearLow.HasValue ? Math.Round(row.yearLow.Value, 2) : 0),
+                    CurrentPrice = (decimal)(row.price.HasValue ? Math.Round(row.price.Value, 2) : 0),
                     EarningsDate = row.earningsAnnouncement,
                     Volume = (int)(row.volume.HasValue ? row.volume.Value : 0),
-                    PriorDayOpen = (decimal)(row.previousClose.HasValue ? row.previousClose.Value : 0),
+                    PriorDayOpen = (decimal)(row.previousClose.HasValue ? Math.Round(row.previousClose.Value,2) : 0),
                     LastModified = DateTime.Now,
                     SecurityType = row.exchange,
-                    PercentageChange = (decimal)(row.changesPercentage.HasValue ? row.changesPercentage.Value : 0),
+                    PercentageChange = (decimal)(row.changesPercentage.HasValue ? Math.Round(row.changesPercentage.Value,2) : 0),
                 };
                 securities.Add(security);
                 

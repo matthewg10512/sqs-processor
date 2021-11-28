@@ -2,6 +2,7 @@
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
+using sqs_processor.Services.Network.HistoricalPrices;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,6 @@ namespace sqs_processor.Services.Factories
         public IGetDividendsServices GetDividendsServices();
 
         public IAmazonUtility GetAmazonUtility();
-
+        public IGetHistoricalPricesService GetHistoricalPricesService();
     }
 }

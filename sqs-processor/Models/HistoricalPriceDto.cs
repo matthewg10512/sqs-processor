@@ -1,30 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
-namespace sqs_processor.Entities
+namespace sqs_processor.Models
 {
-    [Display(Name = "HistoricalPrices")]
-    public class HistoricalPrice : IEntity
+    public class HistoricalPriceDto
     {
-        [Key]
-        public int Id { get; set; }
-        public int SecurityId { get; set; }
 
+        public int Id { get; set; }
+        public int StockId { get; set; }
         [Column(TypeName = "decimal(18,2)")]
-        public decimal? Open { get; set; }
+        public decimal open { get; set; }
         [Column(TypeName = "decimal(18,2)")]
-        public decimal? Close { get; set; }
+        public decimal close { get; set; }
         [Column(TypeName = "decimal(18,2)")]
-        public decimal? High { get; set; }
+        public decimal high { get; set; }
         [Column(TypeName = "decimal(18,2)")]
-        public decimal? Low { get; set; }
-        public int Volume { get; set; }
+        public decimal low { get; set; }
+
+        public int volume { get; set; }
         public DateTime HistoricDate { get; set; }
         [Column(TypeName = "decimal(18,2)")]
         public decimal? PercentChange { get; set; }
+
 
 
     }

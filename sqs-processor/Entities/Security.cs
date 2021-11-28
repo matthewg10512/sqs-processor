@@ -6,6 +6,7 @@ using System.Text;
 
 namespace sqs_processor.Entities
 {
+    [Display(Name = "Securities")]
     public class Security
     {
         [Key]

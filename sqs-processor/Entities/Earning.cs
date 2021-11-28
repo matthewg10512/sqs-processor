@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace sqs_processor.Entities
 {
+
+    [Display(Name = "Earnings")]
     public class Earning
     {
-
+        [Key]
         public int Id { get; set; }
         public int SecurityId { get; set; }
         public DateTime ActualEarningsDate { get; set; }

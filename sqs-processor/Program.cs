@@ -14,6 +14,7 @@ using sqs_processor.Services.Factories;
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
+using sqs_processor.Services.Network.HistoricalPrices;
 using sqs_processor.Services.repos;
 
 namespace sqs_processor
@@ -34,7 +35,9 @@ namespace sqs_processor
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
                     services.AddScoped<IWebClientWrapper, WebClientWrapper>();
                     services.AddScoped<IAmazonUtility, AmazonUtility>();
+
                     
+
 
                     IConfiguration configuration = hostContext.Configuration;
                     var apiKey = configuration.GetSection("FMPAPIKey").Value;
@@ -44,6 +47,8 @@ namespace sqs_processor
                     services.AddScoped<IGetEarningsService>(_ => new GetEarningsFMP(new WebClientWrapper(), apiKey));
 
                     services.AddScoped<IGetDividendsServices>(_ => new GetDividendFMPrep(new WebClientWrapper(), apiKey));
+                    services.AddScoped<IGetHistoricalPricesService>(_ => new GetHistoricalPriceFMP(new WebClientWrapper(), apiKey));
+
 
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
                     var serverVersion = new MySqlServerVersion(new Version(8, 0, 20));
@@ -51,7 +56,7 @@ namespace sqs_processor
 
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
 
-                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
+                    sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
                     services.AddScoped<IServiceFactory, ServiceFactory>();
 
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion

@@ -52,19 +52,23 @@ namespace sqs_processor.Services.repos
         public void UpdateEarnings(List<EarningDto> dividends, Security security);
 
 
-        public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices, Security security);
+        public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices);
 
-        public IEnumerable<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters);
+        public List<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters);
+        public HistoricalPrice GetHistoricalPricesRange(int securityId);
 
+        public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges);
+        public void UpsertPeakRangeDetails(List<PeakRangeDetailDto> peakRangeDetails);
 
+        public void UpsertSecurityPurchaseChecks(List<SecurityPurchaseCheckDto> securityPurchaseCheck);
 
         public void UpdateSecurities(List<SecurityForUpdateDto> securities);
 
-        SecurityTasks GetTasks(string taskName);
-        void UpdateTasks(SecurityTasks task);
+        SecurityTask GetTasks(string taskName);
+        void UpdateTasks(SecurityTask task);
 
-        SecurityPercentageStatistics PercentageChangeGetTasks(string taskName);
-        void PercentageChangeUpdateTasks(SecurityPercentageStatistics task);
+        SecurityPercentageStatistic PercentageChangeGetTasks(string taskName);
+        void PercentageChangeUpdateTasks(SecurityPercentageStatistic task);
         List<AutoSecurityTrade> GetRecommendedSecurityTrades(string securityTradeType);
 
         public void UpdateSecurityTradeHistory(AutoSecurityTrade securityTradeHistory);
