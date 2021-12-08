@@ -1036,7 +1036,18 @@ namespace sqs_processor.Services.repos
                 return;
             }
 
-            List<HistoricalPrice> currentHistoricalPrices = _context.HistoricalPrices.Where(x => x.SecurityId == historicalPrices[0].SecurityId).ToList();
+            List<HistoricalPrice> currentHistoricalPrices = new List<HistoricalPrice>();
+            int currentSecurityId=0;
+            foreach(var historicalPrice in historicalPrices)
+            {
+                if (currentSecurityId == 0 || currentSecurityId != historicalPrice.SecurityId) {
+                    currentSecurityId = historicalPrice.SecurityId;
+                    currentHistoricalPrices.AddRange(_context.HistoricalPrices
+                .Where(x => x.SecurityId == currentSecurityId).ToList());
+                }
+                
+            }
+            
 
 
             List<HistoricalPrice> pricesInDb = GetHistoricalPrices(historicalPrices, currentHistoricalPrices);
@@ -1070,7 +1081,7 @@ namespace sqs_processor.Services.repos
                 historicPriceAdd(historicalPricesAdd);
             }
 
-
+            currentHistoricalPrices = new List<HistoricalPrice>();
 
         }
 

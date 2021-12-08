@@ -13,17 +13,19 @@ namespace sqs_processor.Processes
     {
        // private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetHistoricalPricesService _historicalPriceService;
-        private readonly IUnitOfWork _unitOfWork;
+        IUnitOfWork _unitOfWork;
+        private readonly IUnitofWorkFactory _unitOfWorkFactory;
         public ProcessHistoricalPrices(IServiceFactory serviceFactory)
         {
            // _securityRepository = serviceFactory.GetSecuritiesRepository();
             _historicalPriceService = serviceFactory.GetHistoricalPricesService();
-            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
+            _unitOfWorkFactory = serviceFactory.GetUnitOfWorkFactoryService();
         }
         public void RunTask()
         {
             SecuritiesResourceParameters sr = new SecuritiesResourceParameters();
             //var securities = _securityRepository.GetSecurities(sr);
+            _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(sr);
             
             int iSecurityCount = 0;
@@ -57,11 +59,14 @@ namespace sqs_processor.Processes
                 string html = _historicalPriceService.GetStringHtml(security);
                 historicalPrices.AddRange(_historicalPriceService.TransformData(html, security.Id));
 
-                if (historicalPrices.Count > 500)
+                if (historicalPrices.Count > 50)
                 {
                     //_securityRepository.UpsertHistoricalPrices(historicalPrices);
                     _unitOfWork.securityRepository.UpsertHistoricalPrices(historicalPrices);
                     historicalPrices = new List<HistoricalPriceforUpdateDto>();
+                    _unitOfWork.Dispose();
+                    _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
+
                 }
                 iSecurityCount += 1;
 
