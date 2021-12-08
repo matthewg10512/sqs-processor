@@ -59,7 +59,7 @@ namespace sqs_processor
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
 
                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
-                    
+
 
 
                     var contextOptions = new DbContextOptionsBuilder<SecuritiesLibraryContext>()

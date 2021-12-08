@@ -133,7 +133,7 @@ namespace sqs_processor
                     //CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
                     
                         //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
-                    //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
+//                    CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
                     
                    // CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPurchaseChecks");
 
