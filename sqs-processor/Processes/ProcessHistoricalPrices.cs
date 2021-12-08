@@ -32,7 +32,10 @@ namespace sqs_processor.Processes
 
             foreach (var security in securities)
             {
-
+                if(security.Id != 251)
+                {
+                    continue;
+                }
                 //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
                 var historicalPrice = _unitOfWork.securityRepository.GetHistoricalPricesRange(security.Id);
                 //there aren't any values for this
