@@ -10,18 +10,20 @@ namespace sqs_processor.Processes
 {
     class ProcessFutureDividends : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
+        //private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetDividendsServices _dividendService;
+        private readonly IUnitOfWork _unitOfWork;
         public ProcessFutureDividends(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            //_securityRepository = serviceFactory.GetSecuritiesRepository();
             _dividendService = serviceFactory.GetDividendsServices();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
 
         public void RunTask()
         {
             // LambdaLogger.Log("jobName: " + job.jobName);
-            var task = _securityRepository.GetTasks("FutureDividends");
+            var task = _unitOfWork.securityRepository.GetTasks("FutureDividends");
 
             if (task != null)
             {
@@ -31,8 +33,8 @@ namespace sqs_processor.Processes
                     _dividendService.SetFutureURL();
                     string html = _dividendService.GetStringHtml("", "");
                     List<DividendDto> dividends = _dividendService.TransformData(html, 0);
-                    dividends = _securityRepository.GetDividends(dividends);
-                    _securityRepository.UpdateDividends(dividends);
+                    dividends = _unitOfWork.securityRepository.GetDividends(dividends);
+                    _unitOfWork.securityRepository.UpdateDividends(dividends);
                 }
                 catch (Exception ex)
                 {
@@ -42,10 +44,10 @@ namespace sqs_processor.Processes
 
 
                 task.LastTaskRun = DateTime.Now;
-                _securityRepository.UpdateTasks(task);
+                _unitOfWork.securityRepository.UpdateTasks(task);
             }
 
-
+            _unitOfWork.Dispose();
         }
     }
 }

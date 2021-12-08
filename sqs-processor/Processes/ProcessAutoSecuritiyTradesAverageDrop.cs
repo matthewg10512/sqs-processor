@@ -9,16 +9,18 @@ namespace sqs_processor.Processes
 {
     class ProcessAutoSecuritiyTradesAverageDrop : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
-         public ProcessAutoSecuritiyTradesAverageDrop(IServiceFactory serviceFactory)
+        //private readonly ISecuritiesRepository _securityRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        public ProcessAutoSecuritiyTradesAverageDrop(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            //_securityRepository = serviceFactory.GetSecuritiesRepository();
         }
         public void RunTask()
         {
-            var securityTrades = _securityRepository.GetRecommendedSecurityTrades("averagedrop");
+            var securityTrades = _unitOfWork.securityRepository.GetRecommendedSecurityTrades("averagedrop");
             Console.WriteLine("securityTrades Length" + securityTrades.Count);
-            _securityRepository.ProcessAutoSecurityTrades(securityTrades);
+            _unitOfWork.securityRepository.ProcessAutoSecurityTrades(securityTrades);
+            _unitOfWork.Dispose();
         }
     }
 }

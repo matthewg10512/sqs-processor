@@ -37,16 +37,18 @@ namespace sqs_processor.Services.repos
 
     public class SecuritiesRepository : ISecuritiesRepository, IDisposable
     {
-        private readonly IConfiguration _config;
+       // private readonly IConfiguration _config;
 
         private readonly SecuritiesLibraryContext _context;
         private readonly IMapper _mapper;
 
-        public SecuritiesRepository(SecuritiesLibraryContext context, IConfiguration config, IMapper mapper)
+        public SecuritiesRepository(SecuritiesLibraryContext context, 
+            //IConfiguration config,
+            IMapper mapper)
         {
 
             _context = context ?? throw new ArgumentNullException(nameof(context));
-            _config = config ?? throw new ArgumentNullException(nameof(config));
+           // _config = config ?? throw new ArgumentNullException(nameof(config));
             _mapper = mapper;
         }
 

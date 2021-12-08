@@ -10,15 +10,17 @@ namespace sqs_processor.Processes
 {
    public class ProcessPeakRangeDetails: IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
+        //private readonly ISecuritiesRepository _securityRepository;
+        private readonly IUnitOfWork _unitOfWork;
         public ProcessPeakRangeDetails(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            //_securityRepository = serviceFactory.GetSecuritiesRepository();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
         public void RunTask()
         {
 
-            var securities = _securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+            var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
             List<PeakRangeDetailDto> peakRangeDetails = new List<PeakRangeDetailDto>();
             List<CurrentPeakRangeDto> currentPeakRanges = new List<CurrentPeakRangeDto>();
             Dictionary<string, PeakRangeDetailDto> localPeakRanges = new Dictionary<string, PeakRangeDetailDto>();// new PeakRangeDetailDto[35];
@@ -28,7 +30,7 @@ namespace sqs_processor.Processes
                 try
                 {
                     localPeakRanges = new Dictionary<string, PeakRangeDetailDto>();// new PeakRangeDetailDto[25];
-                    var historicalPrices = _securityRepository.GetHistoricalPrices(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
+                    var historicalPrices = _unitOfWork.securityRepository.GetHistoricalPrices(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
                     historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
                     DateTime currentDateLow = new DateTime();
                     DateTime newRange;
@@ -126,8 +128,8 @@ namespace sqs_processor.Processes
 
                     if (peakRangeDetails.Count > 500)
                     {
-                        _securityRepository.UpsertPeakRangeDetails(peakRangeDetails);
-                        _securityRepository.UpsertCurrentPeakRanges(currentPeakRanges);
+                        _unitOfWork.securityRepository.UpsertPeakRangeDetails(peakRangeDetails);
+                        _unitOfWork.securityRepository.UpsertCurrentPeakRanges(currentPeakRanges);
 
                         currentPeakRanges = new List<CurrentPeakRangeDto>();
                         peakRangeDetails = new List<PeakRangeDetailDto>();
@@ -142,12 +144,13 @@ namespace sqs_processor.Processes
             }
             if (peakRangeDetails.Count > 0)
             {
-                _securityRepository.UpsertPeakRangeDetails(peakRangeDetails);
-                _securityRepository.UpsertCurrentPeakRanges(currentPeakRanges);
+                _unitOfWork.securityRepository.UpsertPeakRangeDetails(peakRangeDetails);
+                _unitOfWork.securityRepository.UpsertCurrentPeakRanges(currentPeakRanges);
 
                 //currentPeakRanges = new List<CurrentPeakRangeDto>();
                 //peakRangeDetails = new List<PeakRangeDetailDto>();
             }
+            _unitOfWork.Dispose();
         }
 
 

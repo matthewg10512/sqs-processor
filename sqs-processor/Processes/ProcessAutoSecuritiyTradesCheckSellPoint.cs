@@ -9,16 +9,19 @@ namespace sqs_processor.Processes
 {
     class ProcessAutoSecuritiyTradesCheckSellPoint : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
-         public ProcessAutoSecuritiyTradesCheckSellPoint(IServiceFactory serviceFactory)
+        //private readonly ISecuritiesRepository _securityRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        public ProcessAutoSecuritiyTradesCheckSellPoint(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            // _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
         public void RunTask()
         {
-            var securityTrades = _securityRepository.GetRecommendedSecurityTrades("checkSellPoint");
+            var securityTrades = _unitOfWork.securityRepository.GetRecommendedSecurityTrades("checkSellPoint");
             Console.WriteLine("securityTrades Length" + securityTrades.Count);
-            _securityRepository.ProcessAutoSecurityTrades(securityTrades);
+            _unitOfWork.securityRepository.ProcessAutoSecurityTrades(securityTrades);
+            _unitOfWork.Dispose();
         }
     }
 }

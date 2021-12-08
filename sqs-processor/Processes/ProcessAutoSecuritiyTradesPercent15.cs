@@ -10,16 +10,19 @@ namespace sqs_processor.Processes
 {
     class ProcessAutoSecuritiyTradesPercent15 : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
-         public ProcessAutoSecuritiyTradesPercent15(IServiceFactory serviceFactory)
+        //private readonly ISecuritiesRepository _securityRepository;
+        private readonly IUnitOfWork _unitOfWork;
+        public ProcessAutoSecuritiyTradesPercent15(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            //_securityRepository = serviceFactory.GetSecuritiesRepository();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
         public void RunTask()
         {
-            var securityTrades = _securityRepository.GetRecommendedSecurityTrades("percent15");
+            var securityTrades = _unitOfWork.securityRepository.GetRecommendedSecurityTrades("percent15");
             Console.WriteLine("securityTrades Length" + securityTrades.Count);
-            _securityRepository.ProcessAutoSecurityTrades(securityTrades);
+            _unitOfWork.securityRepository.ProcessAutoSecurityTrades(securityTrades);
+            _unitOfWork.Dispose();
         }
     }
 }

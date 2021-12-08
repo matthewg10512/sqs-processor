@@ -1,4 +1,6 @@
-﻿using sqs_processor.Services.amazon;
+﻿using AutoMapper;
+using sqs_processor.Services.amazon;
+using sqs_processor.Services.context;
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
@@ -23,5 +25,8 @@ namespace sqs_processor.Services.Factories
 
         public IAmazonUtility GetAmazonUtility();
         public IGetHistoricalPricesService GetHistoricalPricesService();
+        public IMapper GetMapperService();
+        public IContextOptions GetContextOptionsService();
+        public IUnitofWorkFactory GetUnitOfWorkFactoryService();
     }
 }

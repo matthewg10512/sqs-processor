@@ -11,18 +11,20 @@ namespace sqs_processor.Processes
 {
     class ProcessUpdateSecurity : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
+        //private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetSecurityService _securityService;
+        private readonly IUnitOfWork _unitOfWork;
         public ProcessUpdateSecurity(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+            //_securityRepository = serviceFactory.GetSecuritiesRepository();
             _securityService = serviceFactory.GetGetSecurityService();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
     }
 
         public void RunTask()
         {
            // LambdaLogger.Log("jobName: " + job.jobName);
-            var task = _securityRepository.GetTasks("SecurityUpdate");
+            var task = _unitOfWork.securityRepository.GetTasks("SecurityUpdate");
 
             if (task != null)
             {
@@ -34,21 +36,23 @@ namespace sqs_processor.Processes
                 //nasdaq
                 string html = _securityService.GetStringHtml("nasdaq");
                 List<SecurityForUpdateDto> securityDict = _securityService.TransformData(html, "");
-                _securityRepository.UpdateSecurities(securityDict);
+                _unitOfWork.securityRepository.UpdateSecurities(securityDict);
 
                 //nyse
                 html = _securityService.GetStringHtml("nyse");
                 securityDict = _securityService.TransformData(html, "");
-                _securityRepository.UpdateSecurities(securityDict);
+                _unitOfWork.securityRepository.UpdateSecurities(securityDict);
 
 
 
 
                 task.LastTaskRun = DateTime.Now;
-                _securityRepository.UpdateTasks(task);
+                _unitOfWork.securityRepository.UpdateTasks(task);
             }
+            _unitOfWork.Dispose();
 
-            
+
+
         }
     }
 }

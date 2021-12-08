@@ -1,4 +1,6 @@
-﻿using sqs_processor.Services.amazon;
+﻿using AutoMapper;
+using sqs_processor.Services.amazon;
+using sqs_processor.Services.context;
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
@@ -19,11 +21,19 @@ namespace sqs_processor.Services.Factories
         private readonly IGetDividendsServices _dividendsService;
         private readonly IAmazonUtility _amazonUtility;
         private readonly IGetHistoricalPricesService _historicalPriceService;
+        private readonly IMapper _mapper;
+        private readonly IContextOptions _contextOptions;
+        private readonly IUnitofWorkFactory _unitOfWorkFactoryService;
+        
+
         public ServiceFactory(ISecuritiesRepository securityRepository,IGetSecurityService securityService,
         IGetEarningsService earningService,
         IGetDividendsServices dividendsService,
         IAmazonUtility amazonUtility,
-        IGetHistoricalPricesService historicalPriceService)
+        IGetHistoricalPricesService historicalPriceService,
+            IMapper mapper,
+           IContextOptions contextOptions, IUnitofWorkFactory
+            unitOfWorkFactoryService)
         {
             _securityRepository = securityRepository;
             _securityService =securityService;
@@ -31,7 +41,9 @@ namespace sqs_processor.Services.Factories
             _dividendsService = dividendsService;
             _amazonUtility = amazonUtility;
             _historicalPriceService = historicalPriceService;
-
+            _mapper = mapper;
+            _contextOptions = contextOptions;
+            _unitOfWorkFactoryService = unitOfWorkFactoryService;
 
         }
 
@@ -63,6 +75,21 @@ namespace sqs_processor.Services.Factories
         public IGetHistoricalPricesService GetHistoricalPricesService()
         {
             return _historicalPriceService;
+        }
+
+        public IMapper GetMapperService()
+        {
+            return _mapper;
+        }
+
+        public IContextOptions GetContextOptionsService()
+        {
+            return _contextOptions;
+        }
+
+        public IUnitofWorkFactory GetUnitOfWorkFactoryService()
+        {
+            return _unitOfWorkFactoryService;
         }
         
 

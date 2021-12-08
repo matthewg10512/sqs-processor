@@ -91,7 +91,7 @@ namespace sqs_processor
                                 try
                                 {
                                     //  string objectToInstantiate = assemblyNamespace + "ProcessUpdateSecurity";
-                                    CreateWorkerClass(objectToInstantiate);
+                                  //  CreateWorkerClass(objectToInstantiate);
                                   
                                 }
                                 catch (Exception ex)
@@ -119,8 +119,8 @@ namespace sqs_processor
 
 
                             //Deleting message
-                            var deleteMessageRequest = new DeleteMessageRequest(sqsUrl, message.ReceiptHandle);
-                            await amazonSQSClient.DeleteMessageAsync(deleteMessageRequest, stoppingToken);
+                         //   var deleteMessageRequest = new DeleteMessageRequest(sqsUrl, message.ReceiptHandle);
+                          //  await amazonSQSClient.DeleteMessageAsync(deleteMessageRequest, stoppingToken);
 
                             Console.WriteLine($"Message deleted");
                         }
@@ -133,7 +133,7 @@ namespace sqs_processor
                     //CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
                     
                         //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
-                    //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
+                    CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
                     
                    // CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPurchaseChecks");
 

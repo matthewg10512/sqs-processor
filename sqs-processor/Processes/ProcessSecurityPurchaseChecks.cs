@@ -10,15 +10,17 @@ namespace sqs_processor.Processes
 {
     public class ProcessSecurityPurchaseChecks : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
+       // private readonly ISecuritiesRepository _securityRepository;
+        private readonly IUnitOfWork _unitOfWork;
         public ProcessSecurityPurchaseChecks(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+           // _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
         public void RunTask()
         {
 
-            var securities = _securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+            var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
             List<SecurityPurchaseCheckDto> securityPurchases = new List<SecurityPurchaseCheckDto>();
             foreach (var security in securities)
             {
@@ -26,7 +28,7 @@ namespace sqs_processor.Processes
                 {
                     continue;
                 }
-                var historicalPrices = _securityRepository.GetHistoricalPrices(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
+                var historicalPrices = _unitOfWork.securityRepository.GetHistoricalPrices(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
                 historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
                 decimal totalPrice = 0;
                 decimal totalShares = 0;
@@ -52,7 +54,7 @@ namespace sqs_processor.Processes
 
                 if (securityPurchases.Count > 500)
                 {
-                    _securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
+                    _unitOfWork.securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
                     securityPurchases = new List<SecurityPurchaseCheckDto>();
                 }
 
@@ -60,9 +62,10 @@ namespace sqs_processor.Processes
 
             if (securityPurchases.Count > 0)
             {
-                _securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
+                _unitOfWork.securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
 
             }
+            _unitOfWork.Dispose();
         }
 
         

@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using sqs_processor.DbContexts;
 using sqs_processor.Services.amazon;
+using sqs_processor.Services.context;
 using sqs_processor.Services.Factories;
 using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
@@ -49,7 +50,8 @@ namespace sqs_processor
                     services.AddScoped<IGetDividendsServices>(_ => new GetDividendFMPrep(new WebClientWrapper(), apiKey));
                     services.AddScoped<IGetHistoricalPricesService>(_ => new GetHistoricalPriceFMP(new WebClientWrapper(), apiKey));
 
-
+                    DbContextOptions<SecuritiesLibraryContext> options = new DbContextOptions<SecuritiesLibraryContext>();
+                   
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
                     var serverVersion = new MySqlServerVersion(new Version(8, 0, 20));
                     string sqlConnection = configuration.GetSection("MYSQLConnection").Value;
@@ -57,6 +59,23 @@ namespace sqs_processor
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
 
                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
+
+
+                    var contextOptions = new DbContextOptionsBuilder<SecuritiesLibraryContext>()
+                   .UseMySql(sqlConnection, serverVersion
+                      , builder =>
+                      {
+                          builder.EnableRetryOnFailure(5, TimeSpan.FromSeconds(5), null);
+                      }
+                      )
+           .Options;
+
+
+                    services.AddScoped<IContextOptions>(_ => new ContextOptions(contextOptions));
+
+                    services.AddScoped<IUnitofWorkFactory, UnitofWorkFactory>();
+                    
+
                     services.AddScoped<IServiceFactory, ServiceFactory>();
 
                     services.AddDbContextPool<SecuritiesLibraryContext>(options => options.UseMySql(sqlConnection, serverVersion

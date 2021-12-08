@@ -10,30 +10,32 @@ namespace sqs_processor.Processes
 {
     class ProcessGainers : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
+        //private readonly ISecuritiesRepository _securityRepository;
         private readonly IAmazonUtility _amazonUtility;
-
+        private readonly IUnitOfWork _unitOfWork;
         public ProcessGainers(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+           // _securityRepository = serviceFactory.GetSecuritiesRepository();
             _amazonUtility = serviceFactory.GetAmazonUtility();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
 
         public void RunTask()
         {
 
-            var securityAlertType = _securityRepository.GetSecurityAlertType(3);
-            var records = _securityRepository.SecurityAlertCheck(securityAlertType);
+            var securityAlertType = _unitOfWork.securityRepository.GetSecurityAlertType(3);
+            var records = _unitOfWork.securityRepository.SecurityAlertCheck(securityAlertType);
 
-            _securityRepository.ProcessSecurityAlerts(records, securityAlertType);
+            _unitOfWork.securityRepository.ProcessSecurityAlerts(records, securityAlertType);
 
             Console.WriteLine("Records Length" + records.Count);
-            string message = _securityRepository.ConvertStringSecurityAlertCheck(records);
+            string message = _unitOfWork.securityRepository.ConvertStringSecurityAlertCheck(records);
             if (message != "")
             {
                 _amazonUtility.SendSNSMessage(securityAlertType.awsSNSURL, message);
             }
-            
+
+            _unitOfWork.Dispose();
 
         }
     }

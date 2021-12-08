@@ -11,17 +11,21 @@ namespace sqs_processor.Processes
 {
     class ProcessHistoricalPrices : IProcess
     {
-        private readonly ISecuritiesRepository _securityRepository;
+       // private readonly ISecuritiesRepository _securityRepository;
         private readonly IGetHistoricalPricesService _historicalPriceService;
+        private readonly IUnitOfWork _unitOfWork;
         public ProcessHistoricalPrices(IServiceFactory serviceFactory)
         {
-            _securityRepository = serviceFactory.GetSecuritiesRepository();
+           // _securityRepository = serviceFactory.GetSecuritiesRepository();
             _historicalPriceService = serviceFactory.GetHistoricalPricesService();
+            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
         }
         public void RunTask()
         {
             SecuritiesResourceParameters sr = new SecuritiesResourceParameters();
-            var securities = _securityRepository.GetSecurities(sr);
+            //var securities = _securityRepository.GetSecurities(sr);
+            var securities = _unitOfWork.securityRepository.GetSecurities(sr);
+            
             int iSecurityCount = 0;
 
             List<HistoricalPriceforUpdateDto> historicalPrices = new List<HistoricalPriceforUpdateDto>();
@@ -29,7 +33,8 @@ namespace sqs_processor.Processes
             foreach (var security in securities)
             {
 
-                var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
+                //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
+                var historicalPrice = _unitOfWork.securityRepository.GetHistoricalPricesRange(security.Id);
                 //there aren't any values for this
                 if (historicalPrice == null)
                 {
@@ -51,7 +56,8 @@ namespace sqs_processor.Processes
 
                 if (historicalPrices.Count > 500)
                 {
-                    _securityRepository.UpsertHistoricalPrices(historicalPrices);
+                    //_securityRepository.UpsertHistoricalPrices(historicalPrices);
+                    _unitOfWork.securityRepository.UpsertHistoricalPrices(historicalPrices);
                     historicalPrices = new List<HistoricalPriceforUpdateDto>();
                 }
                 iSecurityCount += 1;
@@ -62,10 +68,12 @@ namespace sqs_processor.Processes
 
             if (historicalPrices.Count > 0)
             {
-                _securityRepository.UpsertHistoricalPrices(historicalPrices);
+                //_securityRepository.UpsertHistoricalPrices(historicalPrices);
+                _unitOfWork.securityRepository.UpsertHistoricalPrices(historicalPrices);
 
 
             }
+            _unitOfWork.Dispose();
         }
     }
 }
