@@ -1043,7 +1043,7 @@ namespace sqs_processor.Services.repos
                 if (currentSecurityId == 0 || currentSecurityId != historicalPrice.SecurityId) {
                     currentSecurityId = historicalPrice.SecurityId;
                     currentHistoricalPrices.AddRange(_context.HistoricalPrices
-                .Where(x => x.SecurityId == currentSecurityId).ToList());
+                .Where(x => x.SecurityId == currentSecurityId && x.HistoricDate >= historicalPrice.HistoricDate).ToList());
                 }
                 
             }
@@ -2048,7 +2048,7 @@ namespace sqs_processor.Services.repos
                 fullStringSqlCall.Append("INSERT INTO " + tableName + fields + " VALUES " + values);
 
                 loopCount += 1;
-                if (loopCount > 100)
+                if (loopCount > 300)
                 {
                     _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
                     loopCount = 0;

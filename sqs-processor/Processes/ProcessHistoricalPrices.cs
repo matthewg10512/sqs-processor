@@ -59,7 +59,7 @@ namespace sqs_processor.Processes
                 string html = _historicalPriceService.GetStringHtml(security);
                 historicalPrices.AddRange(_historicalPriceService.TransformData(html, security.Id));
 
-                if (historicalPrices.Count > 50)
+                if (historicalPrices.Count > 500)
                 {
                     //_securityRepository.UpsertHistoricalPrices(historicalPrices);
                     _unitOfWork.securityRepository.UpsertHistoricalPrices(historicalPrices);
