@@ -27,7 +27,7 @@ namespace sqs_processor.Processes
             //var securities = _securityRepository.GetSecurities(sr);
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(sr);
-            
+            var totalHistorical = 0;
             int iSecurityCount = 0;
 
             List<HistoricalPriceforUpdateDto> historicalPrices = new List<HistoricalPriceforUpdateDto>();
@@ -58,9 +58,10 @@ namespace sqs_processor.Processes
 
                 string html = _historicalPriceService.GetStringHtml(security);
                 historicalPrices.AddRange(_historicalPriceService.TransformData(html, security.Id));
-
-                if (historicalPrices.Count > 500)
+                int historicalCount = historicalPrices.Count;
+                if (historicalCount > 500)
                 {
+                    totalHistorical += historicalCount;
                     //_securityRepository.UpsertHistoricalPrices(historicalPrices);
                     _unitOfWork.securityRepository.UpsertHistoricalPrices(historicalPrices);
                     historicalPrices = new List<HistoricalPriceforUpdateDto>();
@@ -69,7 +70,10 @@ namespace sqs_processor.Processes
 
                 }
                 iSecurityCount += 1;
-
+                if(totalHistorical > 300000)
+                {
+                    break;
+                }
 
 
             }
