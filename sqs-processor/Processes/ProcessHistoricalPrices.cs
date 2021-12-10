@@ -27,7 +27,7 @@ namespace sqs_processor.Processes
             //var securities = _securityRepository.GetSecurities(sr);
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(sr);
-            var totalHistorical = 0;
+            int totalHistorical = 0;
             int iSecurityCount = 0;
 
             List<HistoricalPriceforUpdateDto> historicalPrices = new List<HistoricalPriceforUpdateDto>();
