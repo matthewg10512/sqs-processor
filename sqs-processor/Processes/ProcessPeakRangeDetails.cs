@@ -11,15 +11,16 @@ namespace sqs_processor.Processes
    public class ProcessPeakRangeDetails: IProcess
     {
         //private readonly ISecuritiesRepository _securityRepository;
-        private readonly IUnitOfWork _unitOfWork;
+        private IUnitOfWork _unitOfWork;
+        private readonly IUnitofWorkFactory _unitOfWorkFactory;
         public ProcessPeakRangeDetails(IServiceFactory serviceFactory)
         {
             //_securityRepository = serviceFactory.GetSecuritiesRepository();
-            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
+            _unitOfWorkFactory = serviceFactory.GetUnitOfWorkFactoryService();
         }
         public void RunTask()
         {
-
+            _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
             List<PeakRangeDetailDto> peakRangeDetails = new List<PeakRangeDetailDto>();
             List<CurrentPeakRangeDto> currentPeakRanges = new List<CurrentPeakRangeDto>();
@@ -126,11 +127,12 @@ namespace sqs_processor.Processes
                        peakRangeDetails.Add(localPeakRange.Value);
                     }
 
-                    if (peakRangeDetails.Count > 500)
+                    if (peakRangeDetails.Count > 1000)
                     {
                         _unitOfWork.securityRepository.UpsertPeakRangeDetails(peakRangeDetails);
                         _unitOfWork.securityRepository.UpsertCurrentPeakRanges(currentPeakRanges);
-
+                        _unitOfWork.Dispose();
+                        _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
                         currentPeakRanges = new List<CurrentPeakRangeDto>();
                         peakRangeDetails = new List<PeakRangeDetailDto>();
                     }

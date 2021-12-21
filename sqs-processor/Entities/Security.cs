@@ -48,6 +48,7 @@ namespace sqs_processor.Entities
         public bool excludeHistorical { get; set; }
 
 
-
+        public string Description { get; set; }
+        public DateTime? IPODate { get; set; }
     }
 }

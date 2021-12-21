@@ -86,5 +86,9 @@ namespace sqs_processor.Services.repos
         public bool SecurityAlertTradesExists(SecurityAlert securityAlert);
         public List<Security> ProcessSecurityAlerts(List<Security> securities, SecurityAlertType securityAlertType);
 
+
+        public void UpsertSecurityProfile(List<SecurityForUpdateDto> securities);
+
+
     }
 }

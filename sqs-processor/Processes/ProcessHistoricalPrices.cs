@@ -36,7 +36,7 @@ namespace sqs_processor.Processes
             {
                 if(security.Id != 251)
                 {
-             //       continue;
+                    //       continue;
                 }
                 //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
                 var historicalPrice = _unitOfWork.securityRepository.GetHistoricalPricesRange(security.Id);

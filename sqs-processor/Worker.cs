@@ -130,12 +130,13 @@ namespace sqs_processor
                         Console.WriteLine("no Messages");
                     }
 
-                    //CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
+//                    CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
                     
-                        //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
-//                    CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
+                   //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
+                  // CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurityProfiles");
+                    //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
                     
-                   // CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPurchaseChecks");
+                    CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPurchaseChecks");
 
                 }
                 catch (Exception ex)

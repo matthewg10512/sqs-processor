@@ -1183,7 +1183,8 @@ namespace sqs_processor.Services.repos
 
             List<Security> security = _context.Securities.ToList();
             
-            security = securities.Join(security, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 }).Select(x => new Security
+            security = securities.Join(security, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 }).Where(x=> x.query1.SecurityType == x.query2.SecurityType)
+                .Select(x => new Security
             {
 
                 Id = x.query2.Id,
@@ -1208,10 +1209,11 @@ namespace sqs_processor.Services.repos
                 excludeHistorical = x.query2.excludeHistorical,
                 IPOYear = x.query2.IPOYear,
                 Dividend = x.query2.Dividend,
-                DividendDate = x.query2.DividendDate
+                DividendDate = x.query2.DividendDate,
+                IPODate = x.query2.IPODate,
+                    Description = x.query2.Description
 
-
-            }).ToList();
+                }).ToList();
             // .Join(historicalPrice, x => x.Id, y => y.StockId, (query1, query2) => new { query1, query2 })
             //           .Where(o => currentDay == o.query2.HistoricDate).Select(x => x.query1);
 
@@ -1262,12 +1264,12 @@ namespace sqs_processor.Services.repos
               ).Select(x => x.query1).ToList();
 
 
-            dbSecurities = dbSecurities.Except(updatedAlready).ToList();
+           var  updatedbSecurities = dbSecurities.Except(updatedAlready).ToList();
 
 
 
             List<Security> update = new List<Security>();
-            foreach (Security security in dbSecurities)
+            foreach (Security security in updatedbSecurities)
             {
                 if (securityTable.Where(x => x.Symbol == security.Symbol
               ).Count() > 0)
@@ -1276,6 +1278,23 @@ namespace sqs_processor.Services.repos
                 }
             }
             BulkSaveUpdate(update);
+
+
+
+
+            /*Will find any records that are new and add them to the DB*/
+            var existingRecords = securities.Join(dbSecurities, x => x.Symbol,
+             y => y.Symbol, (query1, query2) => new { query1, query2 }).Where(o => o.query1.SecurityType == o.query2.SecurityType
+             ).Select(x => x.query1).ToList();
+
+
+            securities = securities.Except(existingRecords).ToList();
+            List<Security> newRecords = _mapper.Map<List<Security>>(securities).ToList();
+
+
+            
+            AddRecords(newRecords);
+
 
 
 
@@ -1850,8 +1869,7 @@ namespace sqs_processor.Services.repos
 
 
             var newRecords = currentPeakRanges.Join(currentPeakRangesInDb, x => x.SecurityId,
-           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
-           ).Select(x => x.query1);
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => x.query1);
 
 
             currentPeakRanges = currentPeakRanges.Except(newRecords).ToList();
@@ -1888,7 +1906,92 @@ namespace sqs_processor.Services.repos
             return existingPeakRangeDetails;
         }
 
-            
+        public void UpsertSecurityProfile(List<SecurityForUpdateDto> securities)
+        {
+         
+            List<Security> dbSecurities = GetProfileSecurities(securities);
+
+            var securityTable = _context.Securities.Select(x=> new SecurityUpdateProfile { 
+                Id= x.Id, 
+                Description =x.Description, 
+                IPODate = x.IPODate,
+                Symbol = x.Symbol
+            }).ToList();
+
+
+
+
+            var updatedAlready = dbSecurities.Join(securityTable, x => x.Id,
+              y => y.Id, (query1, query2) => new { query1, query2 }).Where(o =>
+              o.query1.Description == o.query2.Description
+              && o.query1.IPODate == o.query2.IPODate
+
+
+              ).Select(x => x.query1).ToList();
+
+
+            var updatedbSecurities = dbSecurities.Except(updatedAlready).ToList();
+
+
+
+            List<Security> update = new List<Security>();
+            foreach (Security security in updatedbSecurities)
+            {
+                if (securityTable.Where(x => x.Symbol == security.Symbol
+              ).Count() > 0)
+                {
+                    update.Add(security);
+                }
+            }
+            BulkSaveUpdate(update);
+
+
+
+        }
+
+
+        private List<Security> GetProfileSecurities(List<SecurityForUpdateDto> securities)
+        {
+
+
+            List<Security> security = _context.Securities.ToList();
+
+            security = securities.Join(security, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 })
+                .Where(x => x.query1.SecurityType == x.query2.SecurityType)
+                .Select(x => new Security
+                {
+                    IPODate = x.query1.IPODate,
+                    Description = x.query1.Description,
+                    Id = x.query2.Id,
+                    Symbol = x.query1.Symbol,
+                    Name = x.query2.Name,
+                    DayHigh = Decimal.Round(x.query2.DayHigh.Value, 2),
+                    DayLow = Decimal.Round(x.query2.DayLow.Value, 2),
+                    YearHigh = Decimal.Round(x.query2.YearHigh.Value, 2),
+                    YearLow = Decimal.Round(x.query2.YearLow.Value, 2),
+                    CurrentPrice = Decimal.Round(x.query2.CurrentPrice, 2),
+
+                    EarningsDate = x.query2.EarningsDate,
+                    Volume = x.query2.Volume,
+                    PriorDayOpen = Decimal.Round(x.query2.PriorDayOpen.Value, 2),
+                    LastModified = x.query1.LastModified,
+                    SecurityType = x.query2.SecurityType,
+                    Industry = x.query2.Industry,
+                    Sector = x.query2.Sector,
+                    PercentageChange = x.query2.PercentageChange,
+                    preferred = x.query2.preferred,
+                    excludeHistorical = x.query2.excludeHistorical,
+                    IPOYear = x.query2.IPOYear,
+                    Dividend = x.query2.Dividend,
+                    DividendDate = x.query2.DividendDate
+
+
+                }).ToList();
+            return security;
+        }
+
+
+
         private List<PeakRangeDetail> GetCurrentPeakRangeDetails(List<PeakRangeDetail> currentPeakRangeDetails,List<PeakRangeDetailDto> peakRangeDetails)
         {
 

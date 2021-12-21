@@ -42,7 +42,9 @@ namespace sqs_processor.Models
         public bool preferred { get; set; }
 
         public bool excludeHistorical { get; set; }
-
+        public string Description { get; set; }
+        public DateTime DateCreated { get; set; }
+        public DateTime IPODate { get; set; }
 
     }
 }

@@ -5,6 +5,7 @@ using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
 using sqs_processor.Services.Network.HistoricalPrices;
+using sqs_processor.Services.Network.Profile;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -24,6 +25,7 @@ namespace sqs_processor.Services.Factories
         private readonly IMapper _mapper;
         private readonly IContextOptions _contextOptions;
         private readonly IUnitofWorkFactory _unitOfWorkFactoryService;
+        private readonly IGetSecurityProfile _securityProfileService;
         
 
         public ServiceFactory(ISecuritiesRepository securityRepository,IGetSecurityService securityService,
@@ -33,7 +35,8 @@ namespace sqs_processor.Services.Factories
         IGetHistoricalPricesService historicalPriceService,
             IMapper mapper,
            IContextOptions contextOptions, IUnitofWorkFactory
-            unitOfWorkFactoryService)
+            unitOfWorkFactoryService, IGetSecurityProfile securityProfileService
+           )
         {
             _securityRepository = securityRepository;
             _securityService =securityService;
@@ -44,7 +47,7 @@ namespace sqs_processor.Services.Factories
             _mapper = mapper;
             _contextOptions = contextOptions;
             _unitOfWorkFactoryService = unitOfWorkFactoryService;
-
+            _securityProfileService = securityProfileService;
         }
 
         public ISecuritiesRepository GetSecuritiesRepository()
@@ -55,6 +58,11 @@ namespace sqs_processor.Services.Factories
         public IGetSecurityService GetGetSecurityService()
         {
             return _securityService;
+        }
+        
+        public IGetSecurityProfile GetSecurityProfileService()
+        {
+            return _securityProfileService;
         }
 
         public IGetEarningsService GetEarningsService()

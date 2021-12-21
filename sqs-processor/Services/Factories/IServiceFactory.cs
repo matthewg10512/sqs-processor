@@ -5,6 +5,7 @@ using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
 using sqs_processor.Services.Network.HistoricalPrices;
+using sqs_processor.Services.Network.Profile;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -28,5 +29,6 @@ namespace sqs_processor.Services.Factories
         public IMapper GetMapperService();
         public IContextOptions GetContextOptionsService();
         public IUnitofWorkFactory GetUnitOfWorkFactoryService();
+        public IGetSecurityProfile GetSecurityProfileService();
     }
 }

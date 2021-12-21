@@ -11,15 +11,16 @@ namespace sqs_processor.Processes
     public class ProcessSecurityPurchaseChecks : IProcess
     {
        // private readonly ISecuritiesRepository _securityRepository;
-        private readonly IUnitOfWork _unitOfWork;
+        private IUnitOfWork _unitOfWork;
+        private readonly IUnitofWorkFactory _unitOfWorkFactory;
         public ProcessSecurityPurchaseChecks(IServiceFactory serviceFactory)
         {
-           // _securityRepository = serviceFactory.GetSecuritiesRepository();
-            _unitOfWork = serviceFactory.GetUnitOfWorkFactoryService().GetUnitOfWork();
+            // _securityRepository = serviceFactory.GetSecuritiesRepository();
+            _unitOfWorkFactory = serviceFactory.GetUnitOfWorkFactoryService();
         }
         public void RunTask()
         {
-
+            _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
             List<SecurityPurchaseCheckDto> securityPurchases = new List<SecurityPurchaseCheckDto>();
             foreach (var security in securities)
@@ -56,6 +57,8 @@ namespace sqs_processor.Processes
                 {
                     _unitOfWork.securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
                     securityPurchases = new List<SecurityPurchaseCheckDto>();
+                    _unitOfWork.Dispose();
+                    _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
                 }
 
             }

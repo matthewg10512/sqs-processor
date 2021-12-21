@@ -16,6 +16,7 @@ using sqs_processor.Services.Network;
 using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
 using sqs_processor.Services.Network.HistoricalPrices;
+using sqs_processor.Services.Network.Profile;
 using sqs_processor.Services.repos;
 
 namespace sqs_processor
@@ -49,7 +50,9 @@ namespace sqs_processor
 
                     services.AddScoped<IGetDividendsServices>(_ => new GetDividendFMPrep(new WebClientWrapper(), apiKey));
                     services.AddScoped<IGetHistoricalPricesService>(_ => new GetHistoricalPriceFMP(new WebClientWrapper(), apiKey));
+                    services.AddScoped<IGetSecurityProfile>(_ => new GetSecurityProfileFromFMP(new WebClientWrapper(), apiKey));
 
+                    
                     DbContextOptions<SecuritiesLibraryContext> options = new DbContextOptions<SecuritiesLibraryContext>();
                    
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
@@ -58,7 +61,7 @@ namespace sqs_processor
 
                     string endpoint = System.Environment.GetEnvironmentVariable("MYSQLPassword");
 
-                    sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
+                     sqlConnection = sqlConnection.Replace("EnvironmentPassword", endpoint);
 
 
 
