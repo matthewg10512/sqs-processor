@@ -130,6 +130,8 @@ namespace sqs_processor
                         Console.WriteLine("no Messages");
                     }
 
+
+
 //                    CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
                     
                    //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
