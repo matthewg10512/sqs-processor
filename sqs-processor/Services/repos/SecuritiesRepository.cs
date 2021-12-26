@@ -636,12 +636,12 @@ namespace sqs_processor.Services.repos
 
 
             var newRecords = earnings.Join(currentEarnings, x => x.SecurityId,
-          y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.ActualEarningsDate == o.query2.ActualEarningsDate
-          ).Select(x => x.query1);
+          y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.ActualEarningsDate == o.query2.ActualEarningsDate && o.query1.SecurityId == o.query2.SecurityId
+          ).Select(x => x.query1).ToList();
 
 
-            earnings = earnings.Except(newRecords).ToList();
-            List<Earning> newEarnings = _mapper.Map<List<Earning>>(earnings).ToList();
+            List<EarningDto> curNewEarnings = earnings.Except(newRecords).ToList();
+            List<Earning> newEarnings = _mapper.Map<List<Earning>>(curNewEarnings).ToList();
 
             if (newEarnings.Count > 0)
             {

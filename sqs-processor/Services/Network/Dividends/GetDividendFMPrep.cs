@@ -44,9 +44,12 @@ namespace sqs_processor.Services.Network.Dividends
         public List<DividendDto> TransformData(string html, int securityId)
         {
             Historical[] dividendsFromApi;
+            string symbol = "";
             if (!futureSearch)
             {
-                dividendsFromApi = JsonConvert.DeserializeObject<DividendFromApi>(html).historical;
+                DividendFromApi details = JsonConvert.DeserializeObject<DividendFromApi>(html);
+                symbol = details.symbol;
+                dividendsFromApi = details.historical;
             }
             else
             {
@@ -54,6 +57,10 @@ namespace sqs_processor.Services.Network.Dividends
             }
 
 
+            if(dividendsFromApi == null || dividendsFromApi.Length == 0)
+            {
+                return new List<DividendDto>();
+            }
             List<DividendDto> dividends = new List<DividendDto>();
             foreach (var row in dividendsFromApi)
             {
@@ -80,7 +87,7 @@ namespace sqs_processor.Services.Network.Dividends
                     RecordDate = row.recordDate != null ? DateTime.Parse(row.recordDate) : dateMin,
                     PayableDate = row.paymentDate != null ? DateTime.Parse(row.paymentDate) : dateMin,
                     SecurityId = securityId,
-                    symbol = row.symbol
+                    symbol = symbol != "" ? symbol : row.symbol
 
                 };
 

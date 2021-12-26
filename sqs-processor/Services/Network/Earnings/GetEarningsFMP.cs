@@ -10,7 +10,7 @@ namespace sqs_processor.Services.Network.Earnings
     {
         private readonly IWebClientWrapper _webClient;
         private string _apiKey;
-        private string _url;
+        public string _url;
         public GetEarningsFMP(IWebClientWrapper webClient, string apiKey)
         {
             _webClient = webClient;
@@ -32,6 +32,11 @@ namespace sqs_processor.Services.Network.Earnings
 
         public void SetURL(string urlType)
         {
+            if (urlType == "")
+            {
+                _url = "";
+                return;
+            }
             DateTime setDate = DateTime.Now;
             DateTime futureDate = setDate.AddDays(45);
             _url = "https://financialmodelingprep.com/api/v3/earning_calendar?from=" + setDate.ToString("yyyy-MM-dd") + "&to=" + futureDate.ToString("yyyy-MM-dd") + "&apikey=" + _apiKey;
