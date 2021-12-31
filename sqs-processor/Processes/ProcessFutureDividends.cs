@@ -33,8 +33,8 @@ namespace sqs_processor.Processes
                     _dividendService.SetFutureURL();
                     string html = _dividendService.GetStringHtml("", "");
                     List<DividendDto> dividends = _dividendService.TransformData(html, 0);
-                    dividends = _unitOfWork.securityRepository.GetDividends(dividends);
-                    _unitOfWork.securityRepository.UpdateDividends(dividends);
+                    dividends = _unitOfWork.dividendRepository.GetDividends(dividends);
+                    _unitOfWork.dividendRepository.UpdateDividends(dividends);
                 }
                 catch (Exception ex)
                 {

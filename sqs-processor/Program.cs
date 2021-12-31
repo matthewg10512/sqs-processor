@@ -18,6 +18,7 @@ using sqs_processor.Services.Network.Earnings;
 using sqs_processor.Services.Network.HistoricalPrices;
 using sqs_processor.Services.Network.Profile;
 using sqs_processor.Services.repos;
+using sqs_processor.Services.Utility;
 
 namespace sqs_processor
 {
@@ -37,8 +38,8 @@ namespace sqs_processor
                     services.AddScoped<ISecuritiesRepository, SecuritiesRepository>();
                     services.AddScoped<IWebClientWrapper, WebClientWrapper>();
                     services.AddScoped<IAmazonUtility, AmazonUtility>();
+                    services.AddScoped<IUtility, Utility>();
 
-                    
 
 
                     IConfiguration configuration = hostContext.Configuration;

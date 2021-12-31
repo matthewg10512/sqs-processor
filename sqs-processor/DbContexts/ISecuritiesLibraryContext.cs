@@ -28,6 +28,8 @@ namespace sqs_processor.DbContexts
         //List<HistoricalPrice> DapperHistoricalPrices { get; set; }
         void Save();
         DbSet<SecurityPercentageStatistic> SecurityPercentageStatistics { get; set; }
+        DbSet<SecurityPercentageStatisticHistory> SecurityPercentageStatisticsHistory { get; set; }
 
+        
     }
 }

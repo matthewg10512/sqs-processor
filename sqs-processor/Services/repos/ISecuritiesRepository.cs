@@ -14,9 +14,7 @@ namespace sqs_processor.Services.repos
 
         bool SecurityExists(int securityId);
 
-        IEnumerable<Dividend> GetDividends(int securityId);
-
-        Dividend GetDividend(int securityId, int dividendId);
+     
         public IEnumerable<Earning> GetEarnings(int securityId);
 
         public IEnumerable<EarningSecurityPercentage> GetEarningSecurityPercentage(int securityId);
@@ -24,7 +22,6 @@ namespace sqs_processor.Services.repos
 
         public List<EarningDto> GetEarnings(List<EarningDto> earnings);
         public IEnumerable<Earning> GetEarnings(EarningsResourceParameters earningsResourceParameters);
-        public IEnumerable<Dividend> GetDividends(DividendsResourceParameters dividendsResourceParameters);
 
 
 
@@ -34,7 +31,6 @@ namespace sqs_processor.Services.repos
         public IEnumerable<Tuple<AutoSecurityTrade, Security>> GetSecurityTradeHistorySecurities(IEnumerable<AutoSecurityTrade> securityTradeHistory);
 
 
-        public IEnumerable<Tuple<Dividend, Security>> GetSecuritiesDividends(IEnumerable<Dividend> dividends);
 
 
         public void UpdateEarnings(List<EarningDto> earnings);
@@ -42,13 +38,12 @@ namespace sqs_processor.Services.repos
         public IEnumerable<Security> GetSecurities(SecuritiesResourceParameters securitiesResourceParameters);
 
 
-        public List<DividendDto> GetDividends(List<DividendDto> dividends);
+       
         bool Save();
 
         public void UpdateSecurity(Security security);
 
-        public void UpdateDividends(List<DividendDto> dividends);
-        public void UpdateDividends(List<DividendDto> dividends, Security security);
+      
         public void UpdateEarnings(List<EarningDto> dividends, Security security);
 
 
@@ -69,6 +64,10 @@ namespace sqs_processor.Services.repos
 
         SecurityPercentageStatistic PercentageChangeGetTasks(string taskName);
         void PercentageChangeUpdateTasks(SecurityPercentageStatistic task);
+
+        void UpsertSecurityPercentageStatistics(List<SecurityPercentageStatisticDto> securityPercentageStatistics);
+        void UpsertSecurityPercentageStatisticsHistory(List<SecurityPercentageStatisticHistory> securityPercentageStatisticsHistory);
+        List<SecurityPercentageStatisticHistory> GetSecurityPercentageStatisticsHistory(List<SecurityPercentageStatistic> securityPercentageStatistics);
         List<AutoSecurityTrade> GetRecommendedSecurityTrades(string securityTradeType);
 
         public void UpdateSecurityTradeHistory(AutoSecurityTrade securityTradeHistory);
@@ -78,7 +77,7 @@ namespace sqs_processor.Services.repos
         public List<AutoSecurityTrade> ProcessAutoSecurityTrades(List<AutoSecurityTrade> securityTrades);
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType);
-
+        public List<Security> GetCurrentSecurityPercentage();
         public string ConvertStringSecurityAlertCheck(List<Security> securities);
 
         public SecurityAlertType GetSecurityAlertType(int id);

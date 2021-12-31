@@ -5,6 +5,7 @@ using sqs_processor.DbContexts;
 using sqs_processor.Entities;
 using sqs_processor.Models;
 using sqs_processor.ResourceParameters;
+using sqs_processor.Services.Utility;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,22 +19,7 @@ using System.Text;
 namespace sqs_processor.Services.repos
 {
 
-    public enum SQLCallType
-    {
-        Update,
-        Insert
-    }
-
-    public class FieldValue
-    {
-        public FieldValue(int fldInsert)
-        {
-            fieldInsert = fldInsert;
-        }
-       public string field { get; set; }
-        public string value { get; set; }
-        public int fieldInsert { get; set; }
-    }
+   
 
     public class SecuritiesRepository : ISecuritiesRepository, IDisposable
     {
@@ -41,21 +27,19 @@ namespace sqs_processor.Services.repos
 
         private readonly SecuritiesLibraryContext _context;
         private readonly IMapper _mapper;
-
+        private readonly IUtility _utility;
         public SecuritiesRepository(SecuritiesLibraryContext context, 
             //IConfiguration config,
-            IMapper mapper)
+            IMapper mapper,IUtility utility)
         {
 
             _context = context ?? throw new ArgumentNullException(nameof(context));
            // _config = config ?? throw new ArgumentNullException(nameof(config));
             _mapper = mapper;
+            _utility = utility;
         }
 
-        public IEnumerable<Dividend> GetDividends(int securityId)
-        {
-            return _context.Dividends.Where(x => x.SecurityId == securityId);
-        }
+      
         public void Dispose()
         {
             //  throw new NotImplementedException();
@@ -87,22 +71,6 @@ namespace sqs_processor.Services.repos
 
 
 
-        public Dividend GetDividend(int securityId, int dividendId)
-        {
-
-            if (securityId == 0)
-            {
-                throw new ArgumentNullException(nameof(securityId));
-            }
-
-            if (dividendId == 0)
-            {
-                throw new ArgumentNullException(nameof(dividendId));
-            }
-
-            return _context.Dividends
-              .Where(c => c.SecurityId == securityId && c.Id == dividendId).FirstOrDefault();
-        }
         public Security GetSecurity(int securityId)
         {
             if (securityId == 0)
@@ -318,47 +286,7 @@ namespace sqs_processor.Services.repos
 
 
 
-        public List<DividendDto> GetDividends(List<DividendDto> dividends)
-        {
-
-
-            var security = _context.Securities.Select(x => new Security { Symbol = x.Symbol, Id = x.Id });
-
-            dividends = dividends.Join(security, x => x.symbol, y => y.Symbol, (query1, query2) => new { query1, query2 }).Select(x => new DividendDto
-            {
-
-                SecurityId = x.query2.Id,
-                symbol = x.query1.symbol,
-                AnnouncementDate = x.query1.AnnouncementDate,
-                Frequency = x.query1.Frequency,
-                Amount = x.query1.Amount,
-                Yield = x.query1.Yield,
-                ExDividendDate = x.query1.ExDividendDate,
-                RecordDate = x.query1.RecordDate,
-                PayableDate = x.query1.PayableDate,
-
-
-
-
-            }).ToList();
-            // .Join(historicalPrice, x => x.Id, y => y.StockId, (query1, query2) => new { query1, query2 })
-            //           .Where(o => currentDay == o.query2.HistoricDate).Select(x => x.query1);
-
-
-            /*
-                        for (int i =0;i< earnings.Count; i++)
-                        {
-                            var security = _context.Securities.FirstOrDefault(x => x.Symbol == earnings[i].symbol);
-                            if(security != null)
-                            {
-                                earnings[i].StockId = security.Id;
-                            }
-                        }
-                        earnings = earnings.Where(x => x.StockId > 0).ToList();
-            */
-            return dividends;
-        }
-
+       
 
 
 
@@ -552,6 +480,10 @@ namespace sqs_processor.Services.repos
             {
                 collection = collection.Where(x => x.HistoricDate >= historicalPriceResourceParameters.HistoricDateLow && x.HistoricDate <= historicalPriceResourceParameters.HistoricDateHigh);
             }
+            if (historicalPriceResourceParameters.openLow.HasValue)
+            {
+                collection = collection.Where(x => x.Open > historicalPriceResourceParameters.openLow);
+            }
             return collection.ToList();
         }
 
@@ -677,192 +609,10 @@ namespace sqs_processor.Services.repos
         }
 
 
-        public void UpdateDividends(List<DividendDto> dividends)
-        {
-            if (dividends.Count == 0)
-            {
-                return;
-            }
-            DateTime searchDate = dividends[0].PayableDate.AddDays(-60);
-            List<Dividend> currentDividends = _context.Dividends.Where(x => x.PayableDate > searchDate).ToList();
-            UpdateDividends(dividends, currentDividends);
-        }
 
 
 
-        /// <summary>
-        /// Gets the dividends from the database compared to what dividends are in there
-        /// </summary>
-        /// <param name="dividends"></param>
-        /// <param name="currentDividends"></param>
-        /// <returns></returns>
-        private List<Dividend> GetDividends(List<DividendDto> dividends, List<Dividend> currentDividends)
-        {
-
-            List<Dividend> dividendChanges = dividends.Join(currentDividends, x => x.SecurityId,
-                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.ExDividendDate == o.query2.ExDividendDate
-
-                ).Select(x => new Dividend
-                {
-                    SecurityId = x.query1.SecurityId,
-                    Id = x.query2.Id,
-                    AnnouncementDate = x.query1.AnnouncementDate,
-                    Frequency = x.query1.Frequency,
-                    Amount = x.query1.Amount,
-                    Yield = x.query1.Yield,
-                    RecordDate = x.query1.RecordDate,
-                    PayableDate = x.query1.PayableDate,
-                    ExDividendDate = x.query1.ExDividendDate
-
-                }).ToList();
-
-
-            return dividendChanges;
-
-        }
-
-        private FieldValue GetFieldAndValue(Object record, PropertyInfo property, int fieldInsert, int sqlCallType)
-        {
-            FieldValue fieldValue = new FieldValue(fieldInsert);
-            var propertyType = property.PropertyType.Name;
-            var propertyValue = property.GetValue(record, null);
-            string fieldName = property.Name;
-            string valueRec = "";
-            switch (propertyType)
-            {
-                case "Int32":
-                    int recValueInt = (Int32)propertyValue;
-                    valueRec = recValueInt.ToString();
-                    break;
-                case "String":
-                    string recValueStr = (string)propertyValue;
-                    if (recValueStr == null)
-                    {
-                        return fieldValue;
-                    }
-                    valueRec = "'" + recValueStr.Replace("'","''")  + "'";
-                    break;
-                case "DateTime":
-                    string recValuestr = ((DateTime)propertyValue).ToString("yyyy-MM-dd HH:mm:ss");
-                    valueRec = "'" + recValuestr + "'";
-                    break;
-                case "Decimal":
-                    decimal recValueDec = (decimal)propertyValue;
-                    valueRec = recValueDec.ToString();
-
-                    break;
-                case "Boolean":
-                    bool recValueBool = (bool)propertyValue;
-                    valueRec = recValueBool ? "1" : "0";
-                    break;
-                case "Nullable`1":
-                    var recValueNull = propertyValue;
-                    if(recValueNull == null)
-                    {
-                        return fieldValue;
-                    }
-
-                    var genericTypes = property.PropertyType.GenericTypeArguments;
-                    string nullableTypeName="";
-                    foreach (var genericType in genericTypes)
-                    {
-                        nullableTypeName = genericType.Name;
-                    }
-                    if (nullableTypeName !=string.Empty)
-                    {
-                        return NullGetFieldAndValue(fieldValue, nullableTypeName, propertyValue, fieldName, sqlCallType);
-                    }
-                    break;
-            }
-
-
-
-            switch (sqlCallType)
-            {
-                case (int)SQLCallType.Update:
-                    if (fieldValue.fieldInsert > 0)
-                    {
-                        fieldValue.value += ",";
-                    }
-                    fieldValue.value += fieldName + " = " + valueRec;
-                    fieldValue.fieldInsert += 1;
-                    break;
-                case (int)SQLCallType.Insert:
-                    if (fieldValue.fieldInsert > 0)
-                    {
-                        fieldValue.field += ",";
-                        fieldValue.value += ",";
-                    }
-                    fieldValue.field += fieldName;
-                    fieldValue.value += valueRec;
-                    fieldValue.fieldInsert += 1;
-                    break;
-            }
-           
-
-
-            return fieldValue;
-        }
-
-
-        public FieldValue NullGetFieldAndValue(FieldValue fieldValue, string nullableTypeName, object propertyValue, string fieldName, int sqlCallType)
-        {
-            string valueRec = "";
-            switch (nullableTypeName)
-            {
-
-                case "Int32":
-                    int recValueInt = (Int32)propertyValue;
-                    valueRec = recValueInt.ToString();
-                    break;
-                case "String":
-                    string recValueStr = (string)propertyValue;
-                    if (recValueStr == null)
-                    {
-                        return fieldValue;
-                    }
-                    valueRec = "'" + recValueStr.Replace("'", "''") + "'";
-                    break;
-                case "DateTime":
-                    
-                    string recValuestr = ((DateTime)propertyValue).ToString("yyyy-MM-dd HH:mm:ss");
-                    valueRec = "'" + recValuestr + "'";
-                    break;
-                case "Decimal":
-                    decimal recValueDec = (decimal)propertyValue;
-                    valueRec = recValueDec.ToString();
-                    break;
-                case "Boolean":
-                    bool recValueBool = (bool)propertyValue;
-                    valueRec = recValueBool ? "1" : "0";
-                    break;
-               
-            }
-
-            switch (sqlCallType)
-            {
-                case (int)SQLCallType.Update:
-                    if (fieldValue.fieldInsert > 0)
-                    {
-                        fieldValue.value += ",";
-                    }
-                    fieldValue.value += fieldName + " = " + valueRec;
-                    fieldValue.fieldInsert += 1;
-                    break;
-                case (int)SQLCallType.Insert:
-                    if (fieldValue.fieldInsert > 0)
-                    {
-                        fieldValue.field += ",";
-                        fieldValue.value += ",";
-                    }
-                    fieldValue.field += fieldName;
-                    fieldValue.value += valueRec;
-                    fieldValue.fieldInsert += 1;
-                    break;
-            }
-
-            return fieldValue;
-        }
+       
 
 
 
@@ -910,8 +660,8 @@ namespace sqs_processor.Services.repos
             
             var updatedAlready = existingSecurityPurchaseCheck.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
    y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.Shares == o.query2.Shares
-   && o.query1.DateModified == o.query2.DateModified
-   && o.query1.DateCreated == o.query2.DateCreated
+   //&& o.query1.DateModified == o.query2.DateModified
+   //&& o.query1.DateCreated == o.query2.DateCreated
    && o.query1.PurchasePrice == o.query2.PurchasePrice
    && o.query1.Shares == o.query2.Shares
    ).Select(x => x.query1).ToList();
@@ -921,7 +671,7 @@ namespace sqs_processor.Services.repos
             existingSecurityPurchaseCheck = existingSecurityPurchaseCheck.Except(updatedAlready).ToList();
 
 
-            UpdateRecords(existingSecurityPurchaseCheck);
+            _utility.UpdateRecords(existingSecurityPurchaseCheck,_context);
 
 
             /*Will find any records that are new and add them to the DB*/
@@ -932,71 +682,13 @@ namespace sqs_processor.Services.repos
            var newSecurityPurchases = securityPurchaseChecks.Except(newRecords).ToList();
             var securityCheckAdd = _mapper.Map<List<SecurityPurchaseCheck>>(newSecurityPurchases).Cast<object>();
 
-            AddRecords(securityCheckAdd);
+            _utility.AddRecords(securityCheckAdd,_context);
             
         }
-        private void UpdateDividends(List<DividendDto> dividends, List<Dividend> currentDividends)
-        {
+        
 
 
 
-
-            List<Dividend> existingDividends = GetDividends(dividends, currentDividends);
-
-
-            var updatedAlready = existingDividends.Join(currentDividends, x => x.SecurityId,
-               y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.ExDividendDate == o.query2.ExDividendDate
-               && o.query1.Amount == o.query2.Amount
-               && o.query1.AnnouncementDate == o.query2.AnnouncementDate
-               && o.query1.Yield == o.query2.Yield
-               && o.query1.RecordDate == o.query2.RecordDate
-               && o.query1.PayableDate == o.query2.PayableDate
-               ).Select(x => x.query1).ToList();
-
-
-            existingDividends = existingDividends.Except(updatedAlready).ToList();
-
-
-            dividendsUpdate(existingDividends);
-
-
-
-            var newRecords = dividends.Join(currentDividends, x => x.SecurityId,
-           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.ExDividendDate == o.query2.ExDividendDate
-           ).Select(x => x.query1);
-
-
-            dividends = dividends.Except(newRecords).ToList();
-            List<Dividend> newDividends = _mapper.Map<List<Dividend>>(dividends).ToList();
-
-            if (newDividends.Count > 0)
-            {
-                dividendsAdd(newDividends);
-            }
-
-
-        }
-
-
-
-
-
-
-
-        public void UpdateDividends(List<DividendDto> dividends, Security security)
-        {
-
-            if (dividends.Count == 0)
-            {
-                return;
-            }
-
-            List<Dividend> currentDividends = _context.Dividends.Where(x => x.SecurityId == dividends[0].SecurityId).ToList();
-
-
-
-            UpdateDividends(dividends, currentDividends);
-        }
 
 
 
@@ -1085,68 +777,30 @@ namespace sqs_processor.Services.repos
 
         }
 
-        private void dividendsUpdate(List<Dividend> dividends)
-        {
-
-            //  _context.BulkUpdate(dividends);
-
-            int sercurityLoop = 0;
-            string sqlCall = "";
-            foreach (Dividend dividend in dividends)
-            {
-
-                //Id, SecurityId, AnnouncementDate, Frequency, Amount, Yield, ExDividendDate, RecordDate, PayableDate
-                sqlCall += "UPDATE Dividends SET Frequency = '" + dividend.Frequency + "', Amount= " + dividend.Amount + " , " +
-                "Yield= " + dividend.Yield + ", ExDividendDate= '" +
-                dividend.ExDividendDate.ToString("yyyy-MM-dd") + "'" + ", RecordDate = '" + dividend.RecordDate.ToString("yyyy-MM-dd") + "'" +
-                ", PayableDate= '" + dividend.PayableDate.ToString("yyyy-MM-dd") + "'" +
-                " WHERE " +
-                " SecurityId = " + dividend.SecurityId +
-                " AND AnnouncementDate = '" + dividend.AnnouncementDate.ToString("yyyy-MM-dd") + "'; ";
-
-                sercurityLoop += 1;
-                if (sercurityLoop == 500)
-                {
-                    _context.Database.ExecuteSqlRaw(sqlCall);
-                    sercurityLoop = 0;
-                    sqlCall = "";
-                }
-            }
-
-            if (sercurityLoop > 0)
-            {
-                _context.Database.ExecuteSqlRaw(sqlCall);
-            }
-        }
-
+        
         private void historicPriceUpdate(List<HistoricalPrice> historicalPrices)
         {
             //   _context.BulkUpdate(historicalPrices);
-            UpdateRecords(historicalPrices);
+            _utility.UpdateRecords(historicalPrices,_context);
         }
 
         private void historicPriceAdd(List<HistoricalPrice> historicalPrices)
         {
 
             //  _context.BulkInsert(historicalPrices);
-            AddRecords(historicalPrices);
+            _utility.AddRecords(historicalPrices,_context);
 
           
 
         }
 
-        private void dividendsAdd(List<Dividend> dividends)
-        {
-            //  _context.BulkInsert(dividends);
-            AddRecords(dividends);
-        }
-
+        
 
         private void earningsUpdate(List<Earning> earnings)
         {
             //  _context.BulkUpdate(earnings);
 
-            UpdateRecords(earnings);
+            _utility.UpdateRecords(earnings,_context);
 
 
         }
@@ -1155,7 +809,7 @@ namespace sqs_processor.Services.repos
         private void earningsAdd(List<Earning> earnings)
         {
             //   _context.BulkInsert(earnings);
-            AddRecords(earnings);
+            _utility.AddRecords(earnings,_context);
 
         }
 
@@ -1292,8 +946,8 @@ namespace sqs_processor.Services.repos
             List<Security> newRecords = _mapper.Map<List<Security>>(securities).ToList();
 
 
-            
-            AddRecords(newRecords);
+
+            _utility.AddRecords(newRecords,_context);
 
 
 
@@ -1303,7 +957,7 @@ namespace sqs_processor.Services.repos
 
         public void BulkSaveUpdate(List<Security> securities)
         {
-            UpdateRecords(securities);
+            _utility.UpdateRecords(securities,_context);
 
         }
 
@@ -1313,15 +967,7 @@ namespace sqs_processor.Services.repos
                 , x => x.SecurityId,
               y => y.Id, (query1, query2) => new { query1, query2 }).Select(x => new Tuple<Earning, Security>(x.query1, x.query2)).ToList();
         }
-        public IEnumerable<Tuple<Dividend, Security>> GetSecuritiesDividends(IEnumerable<Dividend> dividends)
-        {
-
-            return dividends.Join(_context.Securities
-                , x => x.SecurityId,
-              y => y.Id, (query1, query2) => new { query1, query2 }).Select(x => new Tuple<Dividend, Security>(x.query1, x.query2)).ToList();
-
-        }
-
+      
 
         public IEnumerable<Tuple<AutoSecurityTrade, Security>> GetSecurityTradeHistorySecurities(IEnumerable<AutoSecurityTrade> securityTradeHistory)
         {
@@ -1385,63 +1031,6 @@ namespace sqs_processor.Services.repos
 
             return collection.ToList();
         }
-
-        public IEnumerable<Dividend> GetDividends(DividendsResourceParameters dividendsResourceParameters)
-        {
-
-            if (dividendsResourceParameters.exDividendDate == DateTime.MinValue
-               && dividendsResourceParameters.rangeExDividendDateEnd == DateTime.MinValue
-               && dividendsResourceParameters.rangeExDividendDateStart == DateTime.MinValue
-               && string.IsNullOrWhiteSpace(dividendsResourceParameters.searchQuery)
-               && dividendsResourceParameters.securityId == 0
-
-                   )
-            {
-                return _context.Dividends.ToList<Dividend>();
-            }
-
-
-            var collection = _context.Dividends as IQueryable<Dividend>;
-
-
-
-            if (dividendsResourceParameters.exDividendDate != DateTime.MinValue)
-            {
-
-                collection = collection.Where(a => a.ExDividendDate == dividendsResourceParameters.exDividendDate);
-            }
-
-            if (dividendsResourceParameters.rangeExDividendDateStart != DateTime.MinValue)
-            {
-
-                collection = collection.Where(a => a.ExDividendDate != null && a.ExDividendDate >= dividendsResourceParameters.rangeExDividendDateStart);
-            }
-
-            if (dividendsResourceParameters.rangeExDividendDateEnd != DateTime.MinValue)
-            {
-
-                collection = collection.Where(a => a.ExDividendDate != null && a.ExDividendDate <= dividendsResourceParameters.rangeExDividendDateEnd);
-            }
-
-
-            if (dividendsResourceParameters.securityId != 0)
-            {
-
-                collection = collection.Where(a => a.SecurityId == dividendsResourceParameters.securityId);
-            }
-
-
-            return collection.ToList();
-
-
-            /*
-            //return _context.Earnings.Where(x => x.ActualEarningsDate > earningsResourceParameters.actualEarningsDate).Join(_context.PreferredSecurities, x => x.StockId, security => security.Id, (x, security) => new { x, security }).Select(x =>  x.x }).ToList();
-            return _context.Earnings.Where(x => x.ActualEarningsDate > earningsResourceParameters.actualEarningsDate)
-               // .Join(_context.PreferredSecurities, x => x.StockId, security => security.StockId, (x, security) => new { x, security })
-                .Join(_context.Securities.Where(x=>x.preferred==true), x => x.SecurityId, security => security.Id , (x,security) => new { x,security}).Select(x =>  new Tuple<Earning,Security>(x.x , x.security ) ).ToList();
-            */
-        }
-
         /*
         public IEnumerable<Earning> GetEarnings(int securityId)
         {
@@ -1470,10 +1059,117 @@ namespace sqs_processor.Services.repos
 
 
 
+        /// <summary>
+        /// Gets the dividends from the database compared to what dividends are in there
+        /// </summary>
+        /// <param name="dividends"></param>
+        /// <param name="currentDividends"></param>
+        /// <returns></returns>
+        private List<SecurityPercentageStatistic> GetSecurityPercentageStatisticList(List<SecurityPercentageStatisticDto> securityPercentageStatistic, List<SecurityPercentageStatistic> currentSecurityPercentageStatistics)
+        {
+
+
+            List<SecurityPercentageStatistic> securityPurchaseChanges = securityPercentageStatistic.Join(currentSecurityPercentageStatistics, x => x.SecurityId,
+                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => new SecurityPercentageStatistic
+                {
+                    SecurityId = x.query1.SecurityId,
+                    Id = x.query2.Id,
+                    
+                    DateCreated = x.query2.DateCreated,
+                    DateModified = x.query1.DateModified,
+                    AverageDrop = x.query1.AverageDrop,
+                    Percent5 = x.query1.Percent5,
+                    Percent10 = x.query1.Percent10,
+                    Percent15 = x.query1.Percent15,
+                    totalPercentSum = x.query1.totalPercentSum,
+                    highLowRangeAverage = x.query1.highLowRangeAverage,
+                    belowAverageCount = x.query1.belowAverageCount
+                }).ToList();
+
+
+            return securityPurchaseChanges;
+
+        }
+
+        public List<Security> GetCurrentSecurityPercentage()
+        {
+            DateTime pastDate = DateTime.Now.AddDays(-7);
+
+            return _context.Securities.Join(_context.SecurityPercentageStatistics, x => x.Id,
+                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query2.DateModified > pastDate)
+                .Select(x => x.query1).ToList();
+
+        }
+        public void UpsertSecurityPercentageStatistics(List<SecurityPercentageStatisticDto> securityPercentageStatistics)
+        {
+
+
+
+            List<SecurityPercentageStatistic> currentSecuritPurchaseChecks = _context.SecurityPercentageStatistics.ToList();
+
+
+
+            List<SecurityPercentageStatistic> securityPercentageStats = GetSecurityPercentageStatisticList(securityPercentageStatistics, currentSecuritPurchaseChecks);
 
 
 
 
+            var updatedAlready = securityPercentageStats.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
+                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.AverageDrop == o.query2.AverageDrop
+                && o.query1.Percent5 == o.query2.Percent5
+                && o.query1.Percent10 == o.query2.Percent10
+                && o.query1.Percent15 == o.query2.Percent15
+                && o.query1.totalPercentSum == o.query2.totalPercentSum
+                && o.query1.highLowRangeAverage == o.query2.highLowRangeAverage
+                && o.query1.belowAverageCount == o.query2.belowAverageCount
+
+                && o.query1.AverageDrop != 0
+                ).Select(x => x.query1).ToList();
+
+            securityPercentageStats = securityPercentageStats.Except(updatedAlready).ToList();
+
+
+            _utility.UpdateRecords(securityPercentageStats,_context);
+
+
+            var securityHistory = GetSecurityPercentageStatisticsHistory(securityPercentageStats);
+            UpsertSecurityPercentageStatisticsHistory(securityHistory);
+
+
+
+            /*Will find any records that are new and add them to the DB*/
+            var newRecords = securityPercentageStatistics.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
+             y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => x.query1);
+
+
+            var newSecurityPurchases = securityPercentageStatistics.Except(newRecords).ToList();
+            var securityCheckAdd = _mapper.Map<List<SecurityPercentageStatistic>>(newSecurityPurchases).Cast<object>();
+
+            _utility.AddRecords(securityCheckAdd,_context);
+
+
+
+
+        }
+        public  void UpsertSecurityPercentageStatisticsHistory(List<SecurityPercentageStatisticHistory> securityPercentageStatisticsHistory)
+        {
+            _utility.AddRecords(securityPercentageStatisticsHistory,_context);
+        }
+
+        public List<SecurityPercentageStatisticHistory> GetSecurityPercentageStatisticsHistory(List<SecurityPercentageStatistic> securityPercentageStatistics)
+        {
+            var info = _context.SecurityPercentageStatistics.ToList()
+                .Join(securityPercentageStatistics, x => x.SecurityId, y => y.SecurityId, (secPercentageDb, secPercentage) => new { secPercentageDb, secPercentage })
+                .Select(x => new SecurityPercentageStatisticHistory { 
+                    SecurityId = x.secPercentageDb.SecurityId,
+                    DateCalculated= x.secPercentageDb.DateModified,
+                    AverageDrop = x.secPercentageDb.AverageDrop,
+                    Percent5 = x.secPercentageDb.Percent5,
+                    Percent10 = x.secPercentageDb.Percent10,
+                    Percent15 = x.secPercentageDb.Percent15
+                }).ToList();
+            return info;
+        }
 
 
 
@@ -1766,86 +1462,7 @@ namespace sqs_processor.Services.repos
 
 
 
-        public void UpdateRecords(IEnumerable<object> records)
-        {
-            StringBuilder fullStringSqlCall = new StringBuilder();
-            int loopCount = 0;
-            foreach (var record in records)
-            {
-                Type type = record.GetType();
-                var tableName = GetTableName(record);
-                if (tableName == "")
-                {
-                    tableName = type.Name;
-                }
-                string whereStatement = "";
-                string values = "";
-
-                BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
-                PropertyInfo[] properties = type.GetProperties(flags);
-                var fieldInsert = 0;
-                values += "";
-                foreach (PropertyInfo property in properties)
-                {
-                    string fieldName = property.Name;
-
-                    // if (fieldName.ToUpper() == "ID")
-                    //{
-                    //  continue;
-                    // }
-                    var custAttributes = property.GetCustomAttributes();
-                    bool isKey = false;
-                    foreach (var custAttribute in custAttributes)
-                    {
-                        if (custAttribute.GetType().Name == "KeyAttribute")
-                        {
-                            //This Property is the key
-                            isKey = true;
-                        }
-
-                    }
-                    if (isKey)
-                    {
-                        var propertyValue = property.GetValue(record, null);
-                        int recValueInt = (Int32)propertyValue;
-                        whereStatement += " WHERE " + fieldName + " = " + recValueInt.ToString() + ";";
-
-                        continue;
-                    }
-
-                    FieldValue fieldValue = GetFieldAndValue(record, property, fieldInsert, (int)SQLCallType.Update);
-                    values += fieldValue.value;
-                    fieldInsert = fieldValue.fieldInsert;
-
-
-
-                }
-
-
-
-
-
-                fullStringSqlCall.Append("UPDATE " + tableName + " SET " + values + whereStatement);
-
-                loopCount += 1;
-                if (loopCount > 300)
-                {
-                    _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
-                    loopCount = 0;
-                    fullStringSqlCall = new StringBuilder();
-                }
-
-            }
-            if (loopCount > 0)
-            {
-                _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
-
-            }
-
-
-
-        }
-
+       
 
         public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges)
         {
@@ -1864,7 +1481,7 @@ namespace sqs_processor.Services.repos
             existingPeakRangeDetails = existingPeakRangeDetails.Except(updatedAlready).ToList();
 
 
-            UpdateRecords(existingPeakRangeDetails);
+            _utility.UpdateRecords(existingPeakRangeDetails,_context);
 
 
 
@@ -1877,7 +1494,7 @@ namespace sqs_processor.Services.repos
 
             if (newcurrentPeakRange.Count > 0)
             {
-                AddRecords(newcurrentPeakRange);
+                _utility.AddRecords(newcurrentPeakRange,_context);
             }
 
         }
@@ -2053,7 +1670,7 @@ namespace sqs_processor.Services.repos
             existingPeakRangeDetails = existingPeakRangeDetails.Except(updatedAlready).ToList();
 
 
-            UpdateRecords(existingPeakRangeDetails);
+            _utility.UpdateRecords(existingPeakRangeDetails,_context);
 
 
 
@@ -2067,7 +1684,7 @@ namespace sqs_processor.Services.repos
 
             if (newpeakRangeDetails.Count > 0)
             {
-                AddRecords(newpeakRangeDetails);
+                _utility.AddRecords(newpeakRangeDetails,_context);
             }
 
 
@@ -2089,87 +1706,7 @@ namespace sqs_processor.Services.repos
             return displayName;
         }
 
-        public void AddRecords(IEnumerable<object> records)
-        {
-
-            StringBuilder fullStringSqlCall = new StringBuilder();
-            int loopCount = 0;
-            foreach (var record in records)
-            {
-                Type type = record.GetType();
-
-
-                var tableName = GetTableName(record);
-                if (tableName == "")
-                {
-                    tableName = type.Name;
-                }
-
-                string fields = "";
-                string values = "";
-
-                BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
-                PropertyInfo[] properties = type.GetProperties(flags);
-                var fieldInsert = 0;
-                fields += "(";
-                values += "(";
-                foreach (PropertyInfo property in properties)
-                {
-                    string fieldName = property.Name;
-                    var info = property.GetValue(record, null);
-                    // if (fieldName.ToUpper() == "ID")
-                    //{
-                    //  continue;
-                    // }
-                    var custAttributes = property.GetCustomAttributes();
-                    bool isKey = false;
-                    foreach (var custAttribute in custAttributes)
-                    {
-                        if (custAttribute.GetType().Name == "KeyAttribute")
-                        {
-                            //This Property is the key
-                            isKey = true;
-                        }
-
-                    }
-                    // fields +=
-                    if (isKey)
-                    {
-                        continue;
-                    }
-                    FieldValue fieldValue = GetFieldAndValue(record, property, fieldInsert, (int)SQLCallType.Insert);
-                    fields += fieldValue.field;
-                    values += fieldValue.value;
-                    fieldInsert = fieldValue.fieldInsert;
-
-                }
-
-                fields += ")";
-                values += ");";
-
-
-                fullStringSqlCall.Append("INSERT INTO " + tableName + fields + " VALUES " + values);
-
-                loopCount += 1;
-                if (loopCount > 300)
-                {
-                    _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
-                    loopCount = 0;
-                    fullStringSqlCall = new StringBuilder();
-                }
-
-            }
-            if (loopCount > 0)
-            {
-                _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
-
-            }
-        }
-
-
-
-
-
+      
 
 
     }

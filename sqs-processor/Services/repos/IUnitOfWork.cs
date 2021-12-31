@@ -7,6 +7,7 @@ namespace sqs_processor.Services.repos
     public interface IUnitOfWork
     {
         ISecuritiesRepository securityRepository { get; }
+        IDividendsRepository dividendRepository { get; }
         public void Dispose();
     }
 }

@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace sqs_processor.Entities
+namespace sqs_processor.Models
 {
-    [Display(Name = "SecurityPercentageStatistics")]
-    public class SecurityPercentageStatistic
+   public class SecurityPercentageStatisticDto
     {
-        [Key]
-        public int Id { get; set; }
         public int? SecurityId { get; set; }
         public DateTime? DateCreated { get; set; }
         public DateTime? DateModified { get; set; }
@@ -19,9 +15,6 @@ namespace sqs_processor.Entities
         public decimal? Percent15 { get; set; }
         public decimal? totalPercentSum { get; set; }
         public decimal? highLowRangeAverage { get; set; }
-        
         public int? belowAverageCount { get; set; }
-        
-
     }
 }

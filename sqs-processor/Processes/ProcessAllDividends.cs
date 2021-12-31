@@ -46,8 +46,8 @@ namespace sqs_processor.Processes
                         dividends.AddRange(_dividendService.TransformData(html, 0));
                         if (dividends.Count > 1000)
                         {
-                            dividends = _unitOfWork.securityRepository.GetDividends(dividends);
-                            _unitOfWork.securityRepository.UpdateDividends(dividends);
+                            dividends = _unitOfWork.dividendRepository.GetDividends(dividends);
+                            _unitOfWork.dividendRepository.UpdateDividends(dividends);
                             dividends = new List<DividendDto>();
                             _unitOfWork.Dispose();
                             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
@@ -56,8 +56,8 @@ namespace sqs_processor.Processes
 
                     if (dividends.Count > 0)
                     {
-                        dividends = _unitOfWork.securityRepository.GetDividends(dividends);
-                        _unitOfWork.securityRepository.UpdateDividends(dividends);
+                        dividends = _unitOfWork.dividendRepository.GetDividends(dividends);
+                        _unitOfWork.dividendRepository.UpdateDividends(dividends);
                     }
                     
                     
