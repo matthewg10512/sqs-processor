@@ -94,6 +94,18 @@ namespace sqs_processor.Services.repos
         }
 
 
+        public Dividend GetDividend(int securityId, DateTime exDividendDate)
+        {
+
+            if (securityId == 0)
+            {
+                throw new ArgumentNullException(nameof(securityId));
+            }
+
+
+            return _context.Dividends
+              .Where(c => c.SecurityId == securityId && c.ExDividendDate == exDividendDate).FirstOrDefault();
+        }
 
 
         public Dividend GetDividend(int securityId, int dividendId)

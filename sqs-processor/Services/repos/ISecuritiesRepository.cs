@@ -43,8 +43,8 @@ namespace sqs_processor.Services.repos
 
         public void UpdateSecurity(Security security);
 
-      
-        public void UpdateEarnings(List<EarningDto> dividends, Security security);
+        public List<StockPurchaseOption> GetPotentialBuys();
+        public void UpdateEarnings(List<EarningDto> earnings, Security security);
 
 
         public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices);

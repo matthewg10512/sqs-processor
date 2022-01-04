@@ -52,10 +52,16 @@ namespace sqs_processor.Processes
 		public void RunTask()
         {
 			_unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-			var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+			var secResourceParam = new SecuritiesResourceParameters();
+			secResourceParam.lastModifiedRangeStart = DateTime.Now.AddDays(-2);
+
+			//var info = _unitOfWork.securityRepository.GetPotentialBuys();
+
+
+			var securities = _unitOfWork.securityRepository.GetSecurities(secResourceParam);
 			List<SecurityPercentageStatisticDto> securityPercentageStatistics = new List<SecurityPercentageStatisticDto>();
-			//var currentSecurityPercentage = _unitOfWork.securityRepository.GetCurrentSecurityPercentage();
-			//securities = securities.Except(currentSecurityPercentage).ToList();
+			var currentSecurityPercentage = _unitOfWork.securityRepository.GetCurrentSecurityPercentage();
+			securities = securities.Except(currentSecurityPercentage).ToList();
 
 			foreach (var security in securities)
             {

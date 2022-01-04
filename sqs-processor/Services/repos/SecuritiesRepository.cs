@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using sqs_processor.DbContexts;
 using sqs_processor.Entities;
 using sqs_processor.Models;
@@ -8,12 +7,8 @@ using sqs_processor.ResourceParameters;
 using sqs_processor.Services.Utility;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 
 namespace sqs_processor.Services.repos
@@ -55,18 +50,7 @@ namespace sqs_processor.Services.repos
             return _context.Securities.Any(a => a.Id == securityId);
         }
 
-        public Dividend GetDividend(int securityId, DateTime exDividendDate)
-        {
-
-            if (securityId == 0)
-            {
-                throw new ArgumentNullException(nameof(securityId));
-            }
-
-
-            return _context.Dividends
-              .Where(c => c.SecurityId == securityId && c.ExDividendDate == exDividendDate).FirstOrDefault();
-        }
+      
 
 
 
@@ -93,22 +77,10 @@ namespace sqs_processor.Services.repos
         {
             return _context.Securities.Where(x => x.preferred == true).ToList();
 
-
-            //.Join(_context.Securities, x => x.x.StockId, security => security.Id, (x, security) => new { x.x, security }).Select(x => new Tuple<Earning, Security>(x.x, x.security)).ToList();
-
         }
 
         public IEnumerable<Earning> GetEarnings(EarningsResourceParameters earningsResourceParameters)
         {
-            /*
-                   public int stockId { get; set; }
-        public DateTime actualEarningsDate { get; set; }
-        public DateTime rangeStartEarningsDate { get; set; }
-        public DateTime rangeEndEarningsDate { get; set; }
-        public string searchQuery { get; set; }
-            */
-
-
             if (earningsResourceParameters.actualEarningsDate == DateTime.MinValue
                 && earningsResourceParameters.rangeStartEarningsDate == DateTime.MinValue
                 && earningsResourceParameters.rangeEndEarningsDate == DateTime.MinValue
@@ -287,7 +259,32 @@ namespace sqs_processor.Services.repos
 
 
        
+        public List<StockPurchaseOption> GetPotentialBuys()
+        {
+            var lastModified = DateTime.Now.AddDays(-3);
+            var details = _context.Securities.Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, secPerStats) => new { security, secPerStats })
+                 .Where(x => x.security.LastModified > lastModified &&
+                 x.secPerStats.AverageDrop != 0 &&
+                 x.security.Volume > 100000 &&
+                 x.security.PercentageChange < 0 &&
+                 ((x.security.DayLow - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.secPerStats.AverageDrop * (decimal) 1.5
+                 //x.security.PercentageChange < x.secPerStats.AverageDrop * (decimal)1.5
+                 )
+                 //.ToList()
+                 .Join(_context.CurrentPeakRanges, x => x.security.Id, y => y.SecurityId, (s, curPeakRange) => new { s, curPeakRange })
+                 .Join(_context.SecurityPurchaseChecks, x => x.s.security.Id, y => y.SecurityId, (s, spc) => new { s, spc }).Where(x=>x.spc.Shares > 60 
+                 && ( (((x.spc.Shares *  x.s.s.security.CurrentPrice) - x.spc.PurchasePrice) / x.spc.PurchasePrice) * 100) / (x.spc.Shares / 12) > 10
 
+
+                 ).Select(x=> new StockPurchaseOption {
+                 Security = x.s.s.security,
+                 SecurityPercentageStatistic = x.s.s.secPerStats,
+                 CurrentPeakRange = x.s.curPeakRange,
+                 SecurityPurchaseCheck = x.spc
+
+                 }).ToList();
+            return details;
+        }
 
 
 
@@ -327,7 +324,9 @@ namespace sqs_processor.Services.repos
                 && string.IsNullOrWhiteSpace(securitiesResourceParameters.perChangeLow)
                 && !securitiesResourceParameters.perFrom52WeekHigh.HasValue
                 && !securitiesResourceParameters.perFrom52WeekLow.HasValue
-                && !securitiesResourceParameters.minVolume.HasValue);
+                && !securitiesResourceParameters.minVolume.HasValue
+                && !securitiesResourceParameters.lastModifiedRangeStart.HasValue
+                );
         }
 
 
@@ -342,6 +341,12 @@ namespace sqs_processor.Services.repos
 
 
 
+            if (securitiesResourceParameters.lastModifiedRangeStart.HasValue)
+            {
+                collection = collection.Where(a => a.LastModified > securitiesResourceParameters.lastModifiedRangeStart.Value);
+                
+                
+            }
             if (securitiesResourceParameters.lastModifiedPrior.HasValue)
             {
 
@@ -868,21 +873,7 @@ namespace sqs_processor.Services.repos
                     Description = x.query2.Description
 
                 }).ToList();
-            // .Join(historicalPrice, x => x.Id, y => y.StockId, (query1, query2) => new { query1, query2 })
-            //           .Where(o => currentDay == o.query2.HistoricDate).Select(x => x.query1);
-
-
-            /*
-                        for (int i =0;i< earnings.Count; i++)
-                        {
-                            var security = _context.Securities.FirstOrDefault(x => x.Symbol == earnings[i].symbol);
-                            if(security != null)
-                            {
-                                earnings[i].StockId = security.Id;
-                            }
-                        }
-                        earnings = earnings.Where(x => x.StockId > 0).ToList();
-            */
+  
             return security;
         }
 
@@ -1060,10 +1051,10 @@ namespace sqs_processor.Services.repos
 
 
         /// <summary>
-        /// Gets the dividends from the database compared to what dividends are in there
+        /// Joins the security percent statistics from the database and the recent updates
         /// </summary>
-        /// <param name="dividends"></param>
-        /// <param name="currentDividends"></param>
+        /// <param name="securityPercentageStatistic"></param>
+        /// <param name="currentSecurityPercentageStatistics"></param>
         /// <returns></returns>
         private List<SecurityPercentageStatistic> GetSecurityPercentageStatisticList(List<SecurityPercentageStatisticDto> securityPercentageStatistic, List<SecurityPercentageStatistic> currentSecurityPercentageStatistics)
         {
@@ -1223,9 +1214,9 @@ namespace sqs_processor.Services.repos
                 case "averagedrop":
                 default:
                     return _context.Securities
-                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, tradeHistory) => new { security, tradeHistory })
-                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true &&
-                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.tradeHistory.AverageDrop - perLoss)
+                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, secPercentStats) => new { security, secPercentStats })
+                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true &&  x.secPercentStats.AverageDrop != 0 &&
+                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.secPercentStats.AverageDrop * (decimal)1.5)
                 .Select(x =>
                 new AutoSecurityTrade
                 {
@@ -1238,9 +1229,9 @@ namespace sqs_processor.Services.repos
                 case "percent15":
                     perLoss = (decimal).2;
                     return _context.Securities
-                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, tradeHistory) => new { security, tradeHistory })
-                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true &&
-                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.tradeHistory.Percent15 - perLoss)
+                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, secPercentStats) => new { security, secPercentStats })
+                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true &&  x.secPercentStats.AverageDrop != 0 &&
+                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.secPercentStats.Percent15)
                 .Select(x =>
                 new AutoSecurityTrade
                 {
@@ -1253,9 +1244,9 @@ namespace sqs_processor.Services.repos
                 case "percent10":
                     perLoss = (decimal).1;
                     return _context.Securities
-                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, tradeHistory) => new { security, tradeHistory })
-                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true &&
-                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.tradeHistory.Percent10 - perLoss)
+                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, secPercentStats) => new { security, secPercentStats })
+                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true && x.secPercentStats.AverageDrop != 0 &&
+                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.secPercentStats.Percent10)
                 .Select(x =>
                 new AutoSecurityTrade
                 {
@@ -1268,9 +1259,9 @@ namespace sqs_processor.Services.repos
                 case "percent5":
                     perLoss = (decimal)0;
                     return _context.Securities
-                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, tradeHistory) => new { security, tradeHistory })
-                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true &&
-                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.tradeHistory.Percent5 - perLoss)
+                .Join(_context.SecurityPercentageStatistics, x => x.Id, y => y.SecurityId, (security, secPercentStats) => new { security, secPercentStats })
+                .Where(x => x.security.Volume > 100000 && x.security.LastModified > priorDay && x.security.preferred == true && x.secPercentStats.AverageDrop != 0 &&
+                ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.secPercentStats.Percent5)
                 .Select(x =>
                 new AutoSecurityTrade
                 {
@@ -1381,6 +1372,8 @@ namespace sqs_processor.Services.repos
                 collection = collection.Where(x => x.preferred == true);
             }
 
+
+            collection = collection.Where(x => x.Volume > 100000);
 
 
             return collection.ToList();
@@ -1695,16 +1688,7 @@ namespace sqs_processor.Services.repos
 
         }
 
-        public static string GetTableName(object c)
-        {
-            string displayName = "";
-            DisplayAttribute dp = c.GetType().GetCustomAttributes().Cast<DisplayAttribute>().SingleOrDefault();
-            if (dp != null)
-            {
-                displayName = dp.Name;
-            }
-            return displayName;
-        }
+   
 
       
 

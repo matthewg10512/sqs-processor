@@ -7,6 +7,7 @@ namespace sqs_processor.ResourceParameters
     public class SecuritiesResourceParameters
     {
 
+        public DateTime? lastModifiedRangeStart { get; set; }
         public DateTime? lastModifiedPrior { get; set; }
         public string symbol { get; set; }
         public string sector { get; set; }
