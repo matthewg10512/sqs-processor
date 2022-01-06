@@ -48,7 +48,7 @@ namespace sqs_processor.Services.repos
 
 
         public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices);
-
+        public List<Security> GetCurrentPeakRanges();
         public List<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters);
         public HistoricalPrice GetHistoricalPricesRange(int securityId);
 

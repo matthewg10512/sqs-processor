@@ -20,5 +20,8 @@ namespace sqs_processor.Entities
         public DateTime RangeDateStart { get; set; }
         [Column(TypeName = "decimal(5,2)")]
         public decimal PeakRangeCurrentPercentage { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? LastOpenHigh { get; set; }
     }
 }

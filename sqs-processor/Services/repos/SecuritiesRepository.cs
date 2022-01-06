@@ -1082,6 +1082,16 @@ namespace sqs_processor.Services.repos
 
         }
 
+        public List<Security> GetCurrentPeakRanges()
+        {
+            DateTime pastDate = DateTime.Now.AddDays(-2);
+
+            return _context.Securities.Join(_context.CurrentPeakRanges, x => x.Id,
+                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query2.DateModified > pastDate)
+                .Select(x => x.query1).ToList();
+
+        }
+
         public List<Security> GetCurrentSecurityPercentage()
         {
             DateTime pastDate = DateTime.Now.AddDays(-7);
@@ -1468,6 +1478,8 @@ namespace sqs_processor.Services.repos
                && o.query1.RangeDateStart == o.query2.RangeDateStart
                && o.query1.RangeLength == o.query2.RangeLength
                 && o.query1.PeakRangeCurrentPercentage == o.query2.PeakRangeCurrentPercentage
+                && o.query1.LastOpenHigh == o.query2.LastOpenHigh
+
                ).Select(x => x.query1).ToList();
 
 
@@ -1498,7 +1510,7 @@ namespace sqs_processor.Services.repos
 
             List<CurrentPeakRange> existingPeakRangeDetails = currentPeakRanges.Join(currentPeakRangesInDb, x => x.SecurityId,
               y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => new CurrentPeakRange
-              {
+              { 
                   SecurityId = x.query1.SecurityId,
                   Id = x.query2.Id,
                   DateCreated = x.query2.DateCreated,
@@ -1506,8 +1518,8 @@ namespace sqs_processor.Services.repos
                   RangeName = x.query1.RangeName,
                   RangeLength = x.query1.RangeLength,
                   RangeDateStart = x.query1.RangeDateStart,
-                  PeakRangeCurrentPercentage = x.query1.PeakRangeCurrentPercentage
-                 
+                  PeakRangeCurrentPercentage = x.query1.PeakRangeCurrentPercentage,
+                  LastOpenHigh = x.query1.LastOpenHigh
 
 
               }).ToList();

@@ -25,6 +25,12 @@ namespace sqs_processor.Processes
             List<PeakRangeDetailDto> peakRangeDetails = new List<PeakRangeDetailDto>();
             List<CurrentPeakRangeDto> currentPeakRanges = new List<CurrentPeakRangeDto>();
             Dictionary<string, PeakRangeDetailDto> localPeakRanges = new Dictionary<string, PeakRangeDetailDto>();// new PeakRangeDetailDto[35];
+            int securityCount = 0;
+
+           // var currentSecurityCurrentPeakRanges = _unitOfWork.securityRepository.GetCurrentPeakRanges();
+
+            //securities = securities.Except(currentSecurityCurrentPeakRanges).ToList();
+
             foreach (var security in securities)
             {
             
@@ -120,7 +126,8 @@ namespace sqs_processor.Processes
                     currentPeakRange.PeakRangeCurrentPercentage = (decimal)((highRange - security.CurrentPrice) / highRange) * 100;
                     currentPeakRange.DateCreated = DateTime.Now;
                     currentPeakRange.DateModified = DateTime.Now;
-
+                    currentPeakRange.LastOpenHigh = highRange;
+                    securityCount += 1;
                     currentPeakRanges.Add(currentPeakRange);
                     foreach( var localPeakRange in localPeakRanges)
                     {
@@ -135,6 +142,10 @@ namespace sqs_processor.Processes
                         _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
                         currentPeakRanges = new List<CurrentPeakRangeDto>();
                         peakRangeDetails = new List<PeakRangeDetailDto>();
+                        if(securityCount > 4000)
+                        {
+                       //     break;
+                        }
                     }
                 }
                 catch(Exception ex)
