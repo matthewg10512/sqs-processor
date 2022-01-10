@@ -37,7 +37,7 @@ namespace sqs_processor.Processes
                     List<DividendDto> dividends= new List<DividendDto>();
                     foreach (var security in securities)
                     {
-                        if (security.Id != 251)
+                        if (security.Id != 10152)
                         {
                          //   continue;
                         }

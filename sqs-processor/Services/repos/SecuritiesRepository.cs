@@ -533,7 +533,10 @@ namespace sqs_processor.Services.repos
             {
                 return;
             }
-            List<Earning> currentHistoricalEarnings = _context.Earnings.ToList();
+
+            var earningsRecs = earnings.GroupBy(x => x.SecurityId).Select(g => g.Key).ToList();
+
+            List<Earning> currentHistoricalEarnings = _context.Earnings.Where(x=> earningsRecs.Contains(x.SecurityId)).ToList();
             UpdateEarnings(earnings, currentHistoricalEarnings);
         }
 
@@ -735,7 +738,8 @@ namespace sqs_processor.Services.repos
 
             List<HistoricalPrice> currentHistoricalPrices = new List<HistoricalPrice>();
             int currentSecurityId=0;
-            foreach(var historicalPrice in historicalPrices)
+            historicalPrices = historicalPrices.OrderBy(x => x.SecurityId).ThenBy(x => x.HistoricDate).ToList();
+            foreach (var historicalPrice in historicalPrices)
             {
                 if (currentSecurityId == 0 || currentSecurityId != historicalPrice.SecurityId) {
                     currentSecurityId = historicalPrice.SecurityId;
@@ -1074,7 +1078,9 @@ namespace sqs_processor.Services.repos
                     Percent15 = x.query1.Percent15,
                     totalPercentSum = x.query1.totalPercentSum,
                     highLowRangeAverage = x.query1.highLowRangeAverage,
-                    belowAverageCount = x.query1.belowAverageCount
+                    belowAverageCount = x.query1.belowAverageCount,
+                    AvgDropLowAvg = x.query1.AvgDropLowAvg,
+                    AvgDropHighLowRangeAvg = x.query1.AvgDropHighLowRangeAvg
                 }).ToList();
 
 
@@ -1123,6 +1129,8 @@ namespace sqs_processor.Services.repos
                 && o.query1.totalPercentSum == o.query2.totalPercentSum
                 && o.query1.highLowRangeAverage == o.query2.highLowRangeAverage
                 && o.query1.belowAverageCount == o.query2.belowAverageCount
+                && o.query1.AvgDropLowAvg == o.query2.AvgDropLowAvg
+                && o.query1.AvgDropHighLowRangeAvg == o.query2.AvgDropHighLowRangeAvg
 
                 && o.query1.AverageDrop != 0
                 ).Select(x => x.query1).ToList();

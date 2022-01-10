@@ -21,7 +21,10 @@ namespace sqs_processor.Entities
         public decimal? highLowRangeAverage { get; set; }
         
         public int? belowAverageCount { get; set; }
-        
+        public decimal? AvgDropLowAvg { get; set; }
+
+        public decimal? AvgDropHighLowRangeAvg { get; set; }
+
 
     }
 }

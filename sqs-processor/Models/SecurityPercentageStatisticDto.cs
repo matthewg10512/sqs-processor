@@ -16,5 +16,10 @@ namespace sqs_processor.Models
         public decimal? totalPercentSum { get; set; }
         public decimal? highLowRangeAverage { get; set; }
         public int? belowAverageCount { get; set; }
+
+        public decimal? AvgDropLowAvg { get; set; }
+
+        public decimal? AvgDropHighLowRangeAvg { get; set; }
+
     }
 }

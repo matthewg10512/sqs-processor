@@ -34,9 +34,9 @@ namespace sqs_processor.Processes
 
             foreach (var security in securities)
             {
-                if(security.Id != 251)
+                if(security.Id < 2770)
                 {
-                    //       continue;
+                  //continue;
                 }
                 //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
                 var historicalPrice = _unitOfWork.securityRepository.GetHistoricalPricesRange(security.Id);
@@ -48,7 +48,7 @@ namespace sqs_processor.Processes
                 else
                 {
 
-                    _historicalPriceService.startRange = historicalPrice.HistoricDate;
+                    _historicalPriceService.startRange = historicalPrice.HistoricDate.AddDays(-1);
 
 
 

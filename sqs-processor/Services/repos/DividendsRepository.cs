@@ -196,12 +196,19 @@ namespace sqs_processor.Services.repos
             {
                 return;
             }
-            DateTime searchDate = dividends[0].PayableDate.AddDays(-60);
-            List<Dividend> currentDividends = _context.Dividends.Where(x => x.PayableDate > searchDate).ToList();
+            DateTime searchDate = dividends[dividends.Count-1].PayableDate.AddDays(-60);
+            var securityRecs = dividends.GroupBy(x => x.SecurityId).Select(g=>g.Key).ToList();
+
+            List<Dividend> currentDividends = _context.Dividends.Where(x => securityRecs.Contains(x.SecurityId)).ToList();
+
+
+
+
             UpdateDividends(dividends, currentDividends);
         }
 
 
+        /*
         public void UpdateDividends(List<DividendDto> dividends, Security security)
         {
 
@@ -216,7 +223,7 @@ namespace sqs_processor.Services.repos
 
             UpdateDividends(dividends, currentDividends);
         }
-
+        */
 
 
 

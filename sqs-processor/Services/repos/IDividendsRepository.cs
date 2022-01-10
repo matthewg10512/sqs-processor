@@ -19,7 +19,7 @@ namespace sqs_processor.Services.repos
         public IEnumerable<Tuple<Dividend, Security>> GetSecuritiesDividends(IEnumerable<Dividend> dividends);
 
         public void UpdateDividends(List<DividendDto> dividends);
-        public void UpdateDividends(List<DividendDto> dividends, Security security);
+       // public void UpdateDividends(List<DividendDto> dividends, Security security);
         bool Save();
     }
 }
