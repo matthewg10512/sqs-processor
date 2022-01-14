@@ -6,8 +6,8 @@ using System.Text;
 
 namespace sqs_processor.Entities
 {
-    [Display(Name = "SecurityPurchaseChecks")]
-    public class SecurityPurchaseCheck : IEntity
+    [Display(Name = "PriorPurchaseEstimates")]
+    public class PriorPurchaseEstimate : IEntity
     {
         [Key]
         public int Id { get; set; }
@@ -21,6 +21,8 @@ namespace sqs_processor.Entities
         
         [Column(TypeName = "decimal(15,2)")]
         public decimal PurchasePrice { get; set; }
+        public DateTime FirstPurchaseDate { get; set; }
+        public int PurchaseFrequency { get; set; }
 
     }
 }

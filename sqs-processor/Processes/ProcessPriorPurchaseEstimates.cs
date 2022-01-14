@@ -8,12 +8,12 @@ using System.Text;
 
 namespace sqs_processor.Processes
 {
-    public class ProcessSecurityPurchaseChecks : IProcess
+    public class ProcessPriorPurchaseEstimates : IProcess
     {
        // private readonly ISecuritiesRepository _securityRepository;
         private IUnitOfWork _unitOfWork;
         private readonly IUnitofWorkFactory _unitOfWorkFactory;
-        public ProcessSecurityPurchaseChecks(IServiceFactory serviceFactory)
+        public ProcessPriorPurchaseEstimates(IServiceFactory serviceFactory)
         {
             // _securityRepository = serviceFactory.GetSecuritiesRepository();
             _unitOfWorkFactory = serviceFactory.GetUnitOfWorkFactoryService();
@@ -22,50 +22,64 @@ namespace sqs_processor.Processes
         {
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
-            List<SecurityPurchaseCheckDto> securityPurchases = new List<SecurityPurchaseCheckDto>();
+            List<PriorPurchaseEstimateDto> priorPurchaseEstimates = new List<PriorPurchaseEstimateDto>();
+            DateTime firstPurchaseDate = DateTime.Now;
+            bool firstPurchase = false;
             foreach (var security in securities)
             {
                 if (security.CurrentPrice < 5)
                 {
                     continue;
                 }
+                if(security.Id != 251)
+                {
+                    //continue;
+                }
                 var historicalPrices = _unitOfWork.securityRepository.GetHistoricalPrices(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
                 historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
                 decimal totalPrice = 0;
                 decimal totalShares = 0;
-                int loopPurchase = 0;
+                int monthSet = 0;
+                int purchaseFrequency = 0;//monthly
                 foreach (var historicalPrice in historicalPrices)
                 {
-                    if (loopPurchase > 20)
+                    if (historicalPrice.HistoricDate.Month != monthSet)
                     {
+                        monthSet = historicalPrice.HistoricDate.Month;
+                        if (!firstPurchase){
+                            firstPurchase = true;
+                            firstPurchaseDate = historicalPrice.HistoricDate;
+                        }
+
                         totalPrice += historicalPrice.Open.Value;
                         totalShares += 1;
-                        loopPurchase = 1;
                     }
-                    loopPurchase += 1;
 
                 }
-                SecurityPurchaseCheckDto securityPurchase = new SecurityPurchaseCheckDto();
+                PriorPurchaseEstimateDto securityPurchase = new PriorPurchaseEstimateDto();
                 securityPurchase.SecurityId = security.Id;
                 securityPurchase.DateCreated = DateTime.Now;
                 securityPurchase.DateModified = DateTime.Now;
                 securityPurchase.PurchasePrice = totalPrice;
                 securityPurchase.Shares = totalShares;
-                securityPurchases.Add(securityPurchase);
+                securityPurchase.FirstPurchaseDate = firstPurchaseDate;
+                securityPurchase.PurchaseFrequency = purchaseFrequency;
 
-                if (securityPurchases.Count > 500)
+                priorPurchaseEstimates.Add(securityPurchase);
+
+                if (priorPurchaseEstimates.Count > 500)
                 {
-                    _unitOfWork.securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
-                    securityPurchases = new List<SecurityPurchaseCheckDto>();
+                    _unitOfWork.securityRepository.UpsertPriorPurchaseEstimates(priorPurchaseEstimates);
+                    priorPurchaseEstimates = new List<PriorPurchaseEstimateDto>();
                     _unitOfWork.Dispose();
                     _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
                 }
 
             }
 
-            if (securityPurchases.Count > 0)
+            if (priorPurchaseEstimates.Count > 0)
             {
-                _unitOfWork.securityRepository.UpsertSecurityPurchaseChecks(securityPurchases);
+                _unitOfWork.securityRepository.UpsertPriorPurchaseEstimates(priorPurchaseEstimates);
 
             }
             _unitOfWork.Dispose();

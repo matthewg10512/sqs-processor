@@ -5,7 +5,7 @@ using System.Text;
 
 namespace sqs_processor.Models
 {
-    public class SecurityPurchaseCheckDto
+    public class PriorPurchaseEstimateDto
     {
         public int Id { get; set; }
         public int SecurityId { get; set; }
@@ -18,5 +18,10 @@ namespace sqs_processor.Models
 
         [Column(TypeName = "decimal(15,2)")]
         public decimal PurchasePrice { get; set; }
+
+
+        public DateTime FirstPurchaseDate { get; set; }
+        public int PurchaseFrequency { get; set; }
+
     }
 }

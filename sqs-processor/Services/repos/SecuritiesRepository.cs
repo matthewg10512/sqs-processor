@@ -9,12 +9,22 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace sqs_processor.Services.repos
 {
 
-   
+    public class SecurityPercentStatJoin
+    {
+
+        public Security security { get; set; }
+
+        public SecurityPercentageStatistic secPerStats { get; set; }
+        public decimal? PercentDrop { get; set; }
+        public decimal? StatPercentDrop { get; set; }
+    }
+
 
     public class SecuritiesRepository : ISecuritiesRepository, IDisposable
     {
@@ -272,7 +282,7 @@ namespace sqs_processor.Services.repos
                  )
                  //.ToList()
                  .Join(_context.CurrentPeakRanges, x => x.security.Id, y => y.SecurityId, (s, curPeakRange) => new { s, curPeakRange })
-                 .Join(_context.SecurityPurchaseChecks, x => x.s.security.Id, y => y.SecurityId, (s, spc) => new { s, spc }).Where(x=>x.spc.Shares > 60 
+                 .Join(_context.PriorPurchaseEstimates, x => x.s.security.Id, y => y.SecurityId, (s, spc) => new { s, spc }).Where(x=>x.spc.Shares > 60 
                  && ( (((x.spc.Shares *  x.s.s.security.CurrentPrice) - x.spc.PurchasePrice) / x.spc.PurchasePrice) * 100) / (x.spc.Shares / 12) > 10
 
 
@@ -280,7 +290,7 @@ namespace sqs_processor.Services.repos
                  Security = x.s.s.security,
                  SecurityPercentageStatistic = x.s.s.secPerStats,
                  CurrentPeakRange = x.s.curPeakRange,
-                 SecurityPurchaseCheck = x.spc
+                 PriorPurchaseEstimate = x.spc
 
                  }).ToList();
             return details;
@@ -632,63 +642,331 @@ namespace sqs_processor.Services.repos
         /// <param name="dividends"></param>
         /// <param name="currentDividends"></param>
         /// <returns></returns>
-        private List<SecurityPurchaseCheck> GetSecurityPurchaseCheckList(List<SecurityPurchaseCheckDto> dividends, List<SecurityPurchaseCheck> currentSecurityPurchaseChecks)
+        private List<PriorPurchaseEstimate> GetPriorPurchaseEstimateList(List<PriorPurchaseEstimateDto> priorPurchaseEstimates, List<PriorPurchaseEstimate> currentPriorPurchaseEstimates)
         {
        
 
-            List<SecurityPurchaseCheck> securityPurchaseChanges = dividends.Join(currentSecurityPurchaseChecks, x => x.SecurityId,
-                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => new SecurityPurchaseCheck
+            List<PriorPurchaseEstimate> cuurentPriorPurchaseEstimates = priorPurchaseEstimates.Join(currentPriorPurchaseEstimates, x => x.SecurityId,
+                y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => new PriorPurchaseEstimate
                 {
                     SecurityId = x.query1.SecurityId,
                     Id = x.query2.Id,
                     PurchasePrice = x.query1.PurchasePrice,
-                    DateCreated = x.query1.DateCreated,
+                    DateCreated = x.query2.DateCreated,
                     DateModified = x.query1.DateModified,
                     Shares = x.query1.Shares,
+                    PurchaseFrequency = x.query1.PurchaseFrequency,
+                    FirstPurchaseDate = x.query1.FirstPurchaseDate
 
                 }).ToList();
 
 
-            return securityPurchaseChanges;
+            return cuurentPriorPurchaseEstimates;
 
         }
-        public void UpsertSecurityPurchaseChecks(List<SecurityPurchaseCheckDto> securityPurchaseChecks)
+
+        public StockScreenerSearchResourceParameters GetStockScreenerSearchDetails(int stockScreenId)
         {
-            //var secuPurchaseRec = _context.SecurityPurchaseChecks.FirstOrDefault(x => x.SecurityId == securityPurchaseCheck.SecurityId);
+            StockScreenerSearchResourceParameters stockScreenResourceParams = new StockScreenerSearchResourceParameters();
+
+           var criterias = _context.StockScreenerSearchDetails.Where(x => x.StockScreenerId == stockScreenId).Join(_context.ScreenerCriterias, x => x.ScreenerCriteriaId,
+                y => y.id, (query1, query2) => new { query1, query2 }).Select(x => new { Value = x.query1.SearchValue, 
+                    
+                    ObjectName = x.query2.JSONObjectName,
+                ObjectType = x.query2.ObjectType
+                }).ToList();
+
+            foreach(var criteria in criterias)
+            {
+                PropertyInfo propertyInfo = stockScreenResourceParams.GetType().GetProperty(criteria.ObjectName);
+                // make sure object has the property we are after
+                if (propertyInfo != null)
+                {
+                    switch (criteria.ObjectType)
+                    {
+                        case "int":
+                            propertyInfo.SetValue(stockScreenResourceParams, Int32.Parse(criteria.Value), null);
+                            break;
+                        case "decimal":
+                            propertyInfo.SetValue(stockScreenResourceParams, decimal.Parse(criteria.Value), null);
+                            break;
+                        case "string":
+                            propertyInfo.SetValue(stockScreenResourceParams, criteria.Value, null);
+                            break;
+                    }
+                   // propertyInfo.PropertyType.Name
+                    
+                }
+            }
+            stockScreenResourceParams.securityLastModifiedRangeLow = DateTime.Now.AddDays(-1);
+
+            return stockScreenResourceParams;
+
+        }
+
+
+
+
+        public List<StockPurchaseOption> GetStockScreenerResults(StockScreenerSearchResourceParameters stockPurOptResourceParams)
+        {
+            // var lastModified = DateTime.Now.AddDays(-3);
+
+            var securityRecs = _context.Securities as IQueryable<Security>;
+
+            if (stockPurOptResourceParams.securityVolumeRangeLow.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => x.Volume > stockPurOptResourceParams.securityVolumeRangeLow);
+            }
+            if (stockPurOptResourceParams.securityLastModifiedRangeLow.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => x.LastModified > stockPurOptResourceParams.securityLastModifiedRangeLow);
+            }
+            if (stockPurOptResourceParams.securitypercentChangeRangeHigh.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => x.PercentageChange < stockPurOptResourceParams.securitypercentChangeRangeHigh);
+            }
+
+            /*
+            var detailInfo = securityRecs.Join(_context.PeakRangeDetails, x => x.Id, y => y.SecurityId, (s, peakRangeDetails)
+           => new
+           {
+               s = s,
+               peakRanges = peakRangeDetails
+           }).ToList().GroupBy(x => x.s.Id)
+            .Select(g => new 
+            {
+                security = g.Select(x=>x.peakRanges).ToList()//,
+                //PeakRangeDetail = g.Where(x=>x.s.Id == x.peakRanges.SecurityId).Select(o => o.peakRanges).ToList()
+            })
+
+           ;
+            */
+            // var recsInfo = detailInfo.ToList();
+
+            IQueryable<SecurityPercentStatJoin> securityPercentStatJoin =
+                securityRecs.Join(_context.SecurityPercentageStatistics, x => x.Id,
+                y => y.SecurityId, (security, secPerStats) => new SecurityPercentStatJoin
+                { security = security, secPerStats = secPerStats });
+
+            var info = securityPercentStatJoin.ToList();
+
+
+            securityPercentStatJoin = SecurityPercentStatJoin(securityPercentStatJoin, stockPurOptResourceParams);
+
+
+
+            /*   .Where(x => x.security.LastModified > lastModified &&
+             x.secPerStats.AverageDrop != 0 &&
+             x.security.Volume > 100000 &&
+             x.security.PercentageChange < 0 &&
+             ((x.security.DayLow - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100 < x.secPerStats.AverageDrop * (decimal)1.5
+             //x.security.PercentageChange < x.secPerStats.AverageDrop * (decimal)1.5
+             )
+          */
+
+            //.ToList()
+            var details = securityPercentStatJoin
+               .Join(_context.CurrentPeakRanges, x => x.security.Id, y => y.SecurityId, (s, curPeakRange) => new { s, curPeakRange })
+               .Join(_context.PriorPurchaseEstimates, x => x.s.security.Id, y => y.SecurityId, (s, priorPurEst) => new { s, priorPurEst });
+
+            if (stockPurOptResourceParams.priorPurchaseEstimateSharesRangeLow.HasValue)
+            {
+                details = details.Where(x => x.priorPurEst.Shares > stockPurOptResourceParams.priorPurchaseEstimateSharesRangeLow);
+
+            }
+            if (stockPurOptResourceParams.priorPurchaseEstimateYearlyPercentRangeLow.HasValue)
+            {
+                details = details.Where(x =>
+                    ((((x.priorPurEst.Shares * x.s.s.security.CurrentPrice) -
+                    x.priorPurEst.PurchasePrice) / x.priorPurEst.PurchasePrice) * 100) / (x.priorPurEst.Shares / 12) >
+                    stockPurOptResourceParams.priorPurchaseEstimateYearlyPercentRangeLow
+                    );
+            }
+
+
+            var stockPurchaseOptions = details.Join(_context.PeakRangeDetails, x => x.s.s.security.Id, y => y.SecurityId, (s, peakRangeDetails) => new { s, peakRangeDetails })
+                  .ToList().
+                  GroupBy(
+                  x => x.s.s.s.security.Id)
+                   .Select(g => new StockPurchaseOption
+                   {
+                       Security = g.Select(x => x.s.s.s.security).FirstOrDefault(),
+                       SecurityPercentageStatistic = g.Select(x => x.s.s.s.secPerStats).FirstOrDefault(),
+                       CurrentPeakRange = g.Select(x => x.s.s.curPeakRange).FirstOrDefault(),
+                       PriorPurchaseEstimate = g.Select(x => x.s.priorPurEst).FirstOrDefault(),
+
+                       PeakRangeDetail = g.Select(x => x.peakRangeDetails).ToList()//,
+                                                                                   //PeakRangeDetail = g.Where(x=>x.s.Id == x.peakRanges.SecurityId).Select(o => o.peakRanges).ToList()
+                 }).ToList();
+
+            /*
+
+
+        var stockPurchaseOptions = details.Select(x => new StockPurchaseOption
+            {
+                Security = x.s.s.security,
+                SecurityPercentageStatistic = x.s.s.secPerStats,
+                CurrentPeakRange = x.s.curPeakRange,
+                PriorPurchaseEstimate = x.priorPurEst,
+                //PeakRangeDetail = x.peakRangeDetails
+
+            }).ToList();
+            */
+
+            return stockPurchaseOptions;
+        }
+
+
+
+        private IQueryable<SecurityPercentStatJoin> SecurityPercentStatJoin(IQueryable<SecurityPercentStatJoin> securityPercentStatJoin, StockScreenerSearchResourceParameters stockPurOptResourceParams)
+        {
+            
+            if(stockPurOptResourceParams.percentDropType =="" && stockPurOptResourceParams.calculatedPercentDropType == "")
+            {
+                return securityPercentStatJoin;
+            }
+            
+            switch (stockPurOptResourceParams.percentDropType)
+            {
+                case "current":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = ((x.security.CurrentPrice - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100
+                    });
+                    break;
+                case "daylow":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = ((x.security.DayLow - x.security.PriorDayOpen) / x.security.PriorDayOpen) * 100
+                    });
+                    break;
+
+            }
+
+            
+
+            switch (stockPurOptResourceParams.calculatedPercentDropType)
+            {
+
+                case "average":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = x.PercentDrop,
+                        StatPercentDrop = x.secPerStats.AverageDrop
+                    });
+                    break;
+                case "averagetimesoneandhalfpercent":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = x.PercentDrop,
+                        StatPercentDrop = x.secPerStats.AverageDrop * (decimal)1.5
+                    });
+                    break;
+
+                case "averagedroplowaverage":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = x.PercentDrop,
+                        StatPercentDrop = x.secPerStats.AvgDropLowAvg
+                    });
+                    break;
+
+                case "percentile5":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = x.PercentDrop,
+                        StatPercentDrop = x.secPerStats.Percent5
+                    });
+                    break;
+                case "percentile10":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = x.PercentDrop,
+                        StatPercentDrop = x.secPerStats.Percent10
+                    });
+                    break;
+                case "percentile15":
+                    securityPercentStatJoin = securityPercentStatJoin.Select(x => new SecurityPercentStatJoin
+                    {
+                        secPerStats = x.secPerStats,
+                        security = x.security,
+                        PercentDrop = x.PercentDrop,
+                        StatPercentDrop = x.secPerStats.Percent15
+                    });
+                    break;
+            }
+
+            
+
+            securityPercentStatJoin = securityPercentStatJoin.Where(x =>
+                        x.PercentDrop < x.StatPercentDrop);
+
+            
+
+
+            return securityPercentStatJoin;
+
+        }
+
+
+
+        public void UpsertPriorPurchaseEstimates(List<PriorPurchaseEstimateDto> priorPurchaseEstimates)
+        {
+       
+
            
 
-            List<SecurityPurchaseCheck> currentSecuritPurchaseChecks = _context.SecurityPurchaseChecks.ToList();
+            List<PriorPurchaseEstimate> currentPriorPurchaseEstimates = _context.PriorPurchaseEstimates.ToList();
 
 
 
-            List<SecurityPurchaseCheck>  existingSecurityPurchaseCheck = GetSecurityPurchaseCheckList(securityPurchaseChecks, currentSecuritPurchaseChecks);
+            List<PriorPurchaseEstimate> existingPriorPurchaseEstimate = GetPriorPurchaseEstimateList(priorPurchaseEstimates, currentPriorPurchaseEstimates);
 
 
 
             
-            var updatedAlready = existingSecurityPurchaseCheck.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
+            var updatedAlready = existingPriorPurchaseEstimate.Join(currentPriorPurchaseEstimates, x => x.SecurityId,
    y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.Shares == o.query2.Shares
    //&& o.query1.DateModified == o.query2.DateModified
    //&& o.query1.DateCreated == o.query2.DateCreated
    && o.query1.PurchasePrice == o.query2.PurchasePrice
    && o.query1.Shares == o.query2.Shares
+   && o.query1.PurchaseFrequency == o.query2.PurchaseFrequency
+   && o.query1.FirstPurchaseDate == o.query2.FirstPurchaseDate
+
+
+
    ).Select(x => x.query1).ToList();
 
 
 
-            existingSecurityPurchaseCheck = existingSecurityPurchaseCheck.Except(updatedAlready).ToList();
+            existingPriorPurchaseEstimate = existingPriorPurchaseEstimate.Except(updatedAlready).ToList();
 
 
-            _utility.UpdateRecords(existingSecurityPurchaseCheck,_context);
+            _utility.UpdateRecords(existingPriorPurchaseEstimate, _context);
 
 
             /*Will find any records that are new and add them to the DB*/
-            var newRecords = securityPurchaseChecks.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
+            var newRecords = priorPurchaseEstimates.Join(currentPriorPurchaseEstimates, x => x.SecurityId,
              y => y.SecurityId, (query1, query2) => new { query1, query2 }).Select(x => x.query1);
 
 
-           var newSecurityPurchases = securityPurchaseChecks.Except(newRecords).ToList();
-            var securityCheckAdd = _mapper.Map<List<SecurityPurchaseCheck>>(newSecurityPurchases).Cast<object>();
+           var newSecurityPurchases = priorPurchaseEstimates.Except(newRecords).ToList();
+            var securityCheckAdd = _mapper.Map<List<PriorPurchaseEstimate>>(newSecurityPurchases).Cast<object>();
 
             _utility.AddRecords(securityCheckAdd,_context);
             

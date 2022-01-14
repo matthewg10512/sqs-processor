@@ -18,11 +18,16 @@ namespace sqs_processor.DbContexts
         IDbSet<Earning> Earnings { get; set; }
         IDbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
         IDbSet<SecurityAlert> SecurityAlerts { get; set; }
-        IDbSet<SecurityPurchaseCheck> SecurityPurchaseChecks { get; set; }
+        IDbSet<PriorPurchaseEstimate> PriorPurchaseEstimates { get; set; }
         IDbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
         IDbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
 
-        
+
+        IDbSet<StockScreenerSearchDetail> StockScreenerSearchDetails { get; set; }
+        IDbSet<StockScreener> StockScreeners { get; set; }
+        IDbSet<ScreenerCriteria> ScreenerCriterias { get; set; }
+
+
 
         //  IDbSet<Earning> Earnings { get; set; }
         //List<HistoricalPrice> DapperHistoricalPrices { get; set; }

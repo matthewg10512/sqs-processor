@@ -30,12 +30,17 @@ namespace sqs_processor.DbContexts
         public DbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
         public DbSet<SecurityPercentageStatistic> SecurityPercentageStatistics { get; set; }
         public DbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
-        public DbSet<SecurityPurchaseCheck> SecurityPurchaseChecks { get; set; }
+        public DbSet<PriorPurchaseEstimate> PriorPurchaseEstimates { get; set; }
 
         public DbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
         public DbSet<SecurityAlert> SecurityAlerts { get; set; }
 
         public DbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
+
+
+        public DbSet<StockScreenerSearchDetail> StockScreenerSearchDetails { get; set; }
+        public DbSet<StockScreener> StockScreeners { get; set; }
+        public DbSet<ScreenerCriteria> ScreenerCriterias { get; set; }
 
         public void Save()
         {

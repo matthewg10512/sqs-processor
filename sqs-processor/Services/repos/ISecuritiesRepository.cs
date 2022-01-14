@@ -55,7 +55,7 @@ namespace sqs_processor.Services.repos
         public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges);
         public void UpsertPeakRangeDetails(List<PeakRangeDetailDto> peakRangeDetails);
 
-        public void UpsertSecurityPurchaseChecks(List<SecurityPurchaseCheckDto> securityPurchaseCheck);
+        public void UpsertPriorPurchaseEstimates(List<PriorPurchaseEstimateDto> priorPurchaseEstimates);
 
         public void UpdateSecurities(List<SecurityForUpdateDto> securities);
 
@@ -70,11 +70,15 @@ namespace sqs_processor.Services.repos
         List<SecurityPercentageStatisticHistory> GetSecurityPercentageStatisticsHistory(List<SecurityPercentageStatistic> securityPercentageStatistics);
         List<AutoSecurityTrade> GetRecommendedSecurityTrades(string securityTradeType);
 
+        public List<StockPurchaseOption> GetStockScreenerResults(StockScreenerSearchResourceParameters stockPurOptResourceParams);
         public void UpdateSecurityTradeHistory(AutoSecurityTrade securityTradeHistory);
         bool SecurityTradesExists(AutoSecurityTrade securityTradeHistory);
         void AddSecurityTradeHistory(AutoSecurityTrade securityTradeHistory);
 
         public List<AutoSecurityTrade> ProcessAutoSecurityTrades(List<AutoSecurityTrade> securityTrades);
+
+
+        public StockScreenerSearchResourceParameters GetStockScreenerSearchDetails(int stockScreenId);
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType);
         public List<Security> GetCurrentSecurityPercentage();
