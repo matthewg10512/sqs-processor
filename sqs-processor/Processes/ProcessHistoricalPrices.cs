@@ -36,7 +36,7 @@ namespace sqs_processor.Processes
             {
                 if(security.Id < 18983)
                 {
-                  continue;
+                 // continue;
                 }
                 //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
                 var historicalPrice = _unitOfWork.securityRepository.GetHistoricalPricesRange(security.Id);
@@ -70,7 +70,7 @@ namespace sqs_processor.Processes
 
                 }
                 iSecurityCount += 1;
-                if(totalHistorical > 2000000)
+                if(totalHistorical > 300000)
                 {
                     break;
                 }
