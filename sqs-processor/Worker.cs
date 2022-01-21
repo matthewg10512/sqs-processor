@@ -98,17 +98,7 @@ namespace sqs_processor
                                 {
                                     Console.WriteLine($"CreateWorkerClass Error: {ex.Message}");
                                 }
-                                /*
-                                var objectType = Type.GetType(objectToInstantiate);
-                                if (objectType != null)
-                                {
-                                    var t = Activator.CreateInstance(objectType, _securityRepository, _securityService) as IProcess;
-
-                                    // set a property value
-
-                                    t.RunTask();
-                                }
-                                */
+                               
 
                             }
                             catch (Exception ex)
@@ -141,7 +131,7 @@ namespace sqs_processor
 
                     //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
                     // CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurityProfiles");
-               //    CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
+                   //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPriorPurchaseEstimates");
 
