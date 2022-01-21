@@ -117,7 +117,7 @@ namespace sqs_processor
                     }
                     else
                     {
-                        Console.WriteLine("no Messages");
+                      //  Console.WriteLine("no Messages");
                     }
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");

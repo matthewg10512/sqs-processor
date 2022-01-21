@@ -73,7 +73,7 @@ namespace sqs_processor.Processes
                 Console.WriteLine("message" + message);
                 if (message != "")
                 {
-                    message += Environment.NewLine + stockScreener.Name +message;
+                    message = Environment.NewLine + stockScreener.Name + message;
 
                     _amazonUtility.SendSNSMessage(screenAlertsType.awsSNSURL, message);
                 }
