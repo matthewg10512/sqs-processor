@@ -24,8 +24,10 @@ namespace sqs_processor.DbContexts
         public DbSet<Security> Securities { get; set; }
 
         public DbSet<Earning> Earnings { get; set; }
-
+        public DbSet<StockScreenerAlertType> StockScreenerAlertTypes { get; set; }
         public DbSet<SecurityTask> SecurityTasks { get; set; }
+
+        public DbSet<StockScreenerAlertsHistory> StockScreenerAlertsHistory { get; set; }
 
         public DbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
         public DbSet<SecurityPercentageStatistic> SecurityPercentageStatistics { get; set; }
@@ -37,7 +39,7 @@ namespace sqs_processor.DbContexts
 
         public DbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
 
-
+        public DbSet<TradingHoliday> TradingHolidays { get; set; }
         public DbSet<StockScreenerSearchDetail> StockScreenerSearchDetails { get; set; }
         public DbSet<StockScreener> StockScreeners { get; set; }
         public DbSet<ScreenerCriteria> ScreenerCriterias { get; set; }

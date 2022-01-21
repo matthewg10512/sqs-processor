@@ -12,6 +12,7 @@ namespace sqs_processor.ResourceParameters
         public DateTime? securityLastModifiedRangeLow { get; set; }//Prior days
 
         public decimal? securitypercentChangeRangeHigh { get; set; } //0
+        public decimal? securitypercentChangeRangeLow { get; set; } //0
 
 
         public decimal? priorPurchaseEstimateYearlyPercentRangeLow { get; set; }

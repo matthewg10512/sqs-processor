@@ -77,7 +77,19 @@ namespace sqs_processor.Services.repos
 
         public List<AutoSecurityTrade> ProcessAutoSecurityTrades(List<AutoSecurityTrade> securityTrades);
 
+        public StockScreenerAlertType GetStockScreenerAlertType(int stockScreenerAlertTypeId);
 
+        public List<StockScreenerAlertType> GetStockScreenerAlertTypes();
+
+        public List<StockScreenerAlertsHistoryDto> GetNewStockScreenerAlertsHistory(List<Security> securities, int stockScreenerAlertTypeId);
+
+        public void AddStockScreenerAlertsHistoryRecords(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords);
+
+        public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords);
+        public bool IsMarketClosed(DateTime currentDate);
+        public bool IsHoliday(DateTime currentDate);
+
+        public List<StockScreener> GetStockScreeners();
         public StockScreenerSearchResourceParameters GetStockScreenerSearchDetails(int stockScreenId);
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType);

@@ -685,10 +685,25 @@ namespace sqs_processor.Services.repos
                     switch (criteria.ObjectType)
                     {
                         case "int":
-                            propertyInfo.SetValue(stockScreenResourceParams, Int32.Parse(criteria.Value), null);
+                            if (criteria.Value == "")
+                            {
+                                propertyInfo.SetValue(stockScreenResourceParams, null, null);
+                            }
+                            else
+                            {
+                                propertyInfo.SetValue(stockScreenResourceParams, Int32.Parse(criteria.Value), null);
+                            }
                             break;
                         case "decimal":
-                            propertyInfo.SetValue(stockScreenResourceParams, decimal.Parse(criteria.Value), null);
+
+                            if (criteria.Value == "")
+                            {
+                                propertyInfo.SetValue(stockScreenResourceParams, null, null);
+                            }
+                            else
+                            {
+                                propertyInfo.SetValue(stockScreenResourceParams, decimal.Parse(criteria.Value), null);
+                            }
                             break;
                         case "string":
                             propertyInfo.SetValue(stockScreenResourceParams, criteria.Value, null);
@@ -698,7 +713,7 @@ namespace sqs_processor.Services.repos
                     
                 }
             }
-            stockScreenResourceParams.securityLastModifiedRangeLow = DateTime.Now.AddDays(-1);
+            stockScreenResourceParams.securityLastModifiedRangeLow = DateTime.Now.AddDays(-3);
 
             return stockScreenResourceParams;
 
@@ -725,6 +740,11 @@ namespace sqs_processor.Services.repos
             {
                 securityRecs = securityRecs.Where(x => x.PercentageChange < stockPurOptResourceParams.securitypercentChangeRangeHigh);
             }
+            if (stockPurOptResourceParams.securitypercentChangeRangeLow.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => x.PercentageChange > stockPurOptResourceParams.securitypercentChangeRangeLow);
+            }
+            
 
             /*
             var detailInfo = securityRecs.Join(_context.PeakRangeDetails, x => x.Id, y => y.SecurityId, (s, peakRangeDetails)
@@ -821,7 +841,10 @@ namespace sqs_processor.Services.repos
         private IQueryable<SecurityPercentStatJoin> SecurityPercentStatJoin(IQueryable<SecurityPercentStatJoin> securityPercentStatJoin, StockScreenerSearchResourceParameters stockPurOptResourceParams)
         {
             
-            if(stockPurOptResourceParams.percentDropType =="" && stockPurOptResourceParams.calculatedPercentDropType == "")
+            if(stockPurOptResourceParams.percentDropType =="" || stockPurOptResourceParams.calculatedPercentDropType == ""
+                    ||
+                stockPurOptResourceParams.percentDropType == null || stockPurOptResourceParams.calculatedPercentDropType == null
+                )
             {
                 return securityPercentStatJoin;
             }
@@ -847,8 +870,7 @@ namespace sqs_processor.Services.repos
 
             }
 
-            
-
+                
             switch (stockPurOptResourceParams.calculatedPercentDropType)
             {
 
@@ -922,7 +944,84 @@ namespace sqs_processor.Services.repos
 
         }
 
+        public List<StockScreener> GetStockScreeners()
+        {
+         return   _context.StockScreeners.ToList();
+        }
 
+        public List<StockScreenerAlertsHistoryDto> GetNewStockScreenerAlertsHistory(List<Security> securities, int stockScreenerId)
+        {
+
+            DateTime currentDate = DateTime.Now;
+            var currentDay = currentDate.Date;
+
+            var securityList = securities.Select(x => x.Id ).ToList();
+            var currentRecords = _context.StockScreenerAlertsHistory.Where(x => x.StockScreenerId == stockScreenerId && securityList.Contains(x.SecurityId) && x.DateRecorded > currentDay).ToList();
+            var updatedAlready = securities.Join(currentRecords, x => x.Id,
+                y => y.SecurityId, (s, current) => new { s, current }).Select(x=>x.s).ToList();
+           var newRecords = securities.Except(updatedAlready).ToList();
+
+            return newRecords.Select(x => new StockScreenerAlertsHistoryDto { DateRecorded = DateTime.UtcNow, SecurityId = x.Id, StockScreenerId = stockScreenerId }).ToList();
+
+        }
+
+
+        public StockScreenerAlertType GetStockScreenerAlertType(int stockScreenerAlertTypeId)
+        {
+            return _context.StockScreenerAlertTypes.Where(x=> x.id == stockScreenerAlertTypeId).FirstOrDefault();
+        }
+
+        public List<StockScreenerAlertType> GetStockScreenerAlertTypes()
+        {
+            return _context.StockScreenerAlertTypes.ToList();
+        }
+
+       
+
+        public bool IsMarketClosed(DateTime currentDate)
+        {
+
+            
+            if (currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday )
+            {
+                return true;
+            }
+            else
+            {
+                
+                var date = currentDate.Date;
+                int holidayFind =  _context.TradingHolidays.Where(x => x.HolidayDate == date).ToList().Count;
+                if (holidayFind>0)
+                {
+                    return true;
+                }
+                return false;
+            }
+
+
+        }
+
+
+        /*
+            TimeZoneInfo timeZone = TimeZoneInfo.Local;
+
+            DateTime convertedTime = currentDate;
+            TimeSpan offset;
+
+            if (currentDate.Kind == DateTimeKind.Local && !timeZone.Equals(TimeZoneInfo.Local))
+                convertedTime = TimeZoneInfo.ConvertTime(currentDate, TimeZoneInfo.Local, timeZone);
+            else if (currentDate.Kind == DateTimeKind.Utc && !timeZone.Equals(TimeZoneInfo.Utc))
+                convertedTime = TimeZoneInfo.ConvertTime(currentDate, TimeZoneInfo.Utc, timeZone);
+            offset = timeZone.GetUtcOffset(currentDate);
+            */
+
+
+        public void AddStockScreenerAlertsHistoryRecords(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords)
+        {
+
+            IEnumerable<StockScreenerAlertsHistory> stockScreenerAlertsHistoryRecordsAdd = _mapper.Map<List<StockScreenerAlertsHistory>>(stockScreenerAlertsHistoryRecords);
+            _utility.AddRecords(stockScreenerAlertsHistoryRecordsAdd, _context);
+        }
 
         public void UpsertPriorPurchaseEstimates(List<PriorPurchaseEstimateDto> priorPurchaseEstimates)
         {
@@ -1682,6 +1781,28 @@ namespace sqs_processor.Services.repos
             return _context.SecurityAlertTypes.Where(x => x.Id == id).First();
         }
 
+
+        public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords)
+        {
+            StringBuilder messageString = new StringBuilder();
+
+            var securityList = stockScreenerAlertsHistoryRecords.Select(x => x.SecurityId).ToList();
+            var securityRecs =   _context.Securities.Where(x => securityList.Contains(x.Id)).ToList();
+            
+
+            foreach (var securityRec in securityRecs)
+            {
+
+                messageString.Append(Environment.NewLine +
+                    (securityRec.Name.Length > 15 ? securityRec.Name.Substring(0,15) + ".." : securityRec.Name)
+                    + "(" + securityRec.Symbol + ") " + securityRec.CurrentPrice.ToString() + "(" + securityRec.PercentageChange.ToString() + "%)" );
+            }
+
+
+
+            return messageString.ToString();
+        }
+
         public string ConvertStringSecurityAlertCheck(List<Security> securities)
         {
             StringBuilder messageString = new StringBuilder();
@@ -1986,11 +2107,10 @@ namespace sqs_processor.Services.repos
 
         }
 
-   
-
-      
-
-
+        public bool IsHoliday(DateTime currentDate)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
 

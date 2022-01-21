@@ -22,7 +22,10 @@ namespace sqs_processor.DbContexts
         IDbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
         IDbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
 
-
+        IDbSet<StockScreenerAlertType> StockScreenerAlertTypes { get; set; }
+        IDbSet<TradingHoliday> TradingHolidays { get; set; }
+        
+        IDbSet<StockScreenerAlertsHistory> StockScreenerAlertsHistory { get; set; }
         IDbSet<StockScreenerSearchDetail> StockScreenerSearchDetails { get; set; }
         IDbSet<StockScreener> StockScreeners { get; set; }
         IDbSet<ScreenerCriteria> ScreenerCriterias { get; set; }
