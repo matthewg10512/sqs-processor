@@ -141,7 +141,7 @@ namespace sqs_processor
 
                     //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
                     // CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurityProfiles");
-                   //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
+               //    CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPriorPurchaseEstimates");
 
