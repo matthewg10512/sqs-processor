@@ -744,24 +744,23 @@ namespace sqs_processor.Services.repos
             {
                 securityRecs = securityRecs.Where(x => x.PercentageChange > stockPurOptResourceParams.securitypercentChangeRangeLow);
             }
-            
-
-            /*
-            var detailInfo = securityRecs.Join(_context.PeakRangeDetails, x => x.Id, y => y.SecurityId, (s, peakRangeDetails)
-           => new
-           {
-               s = s,
-               peakRanges = peakRangeDetails
-           }).ToList().GroupBy(x => x.s.Id)
-            .Select(g => new 
+            if (stockPurOptResourceParams.percentFrom52WeekLowRangeLow.HasValue)
             {
-                security = g.Select(x=>x.peakRanges).ToList()//,
-                //PeakRangeDetail = g.Where(x=>x.s.Id == x.peakRanges.SecurityId).Select(o => o.peakRanges).ToList()
-            })
+                securityRecs = securityRecs.Where(x => ((x.CurrentPrice - x.YearLow) / x.YearLow) * 100 < stockPurOptResourceParams.percentFrom52WeekLowRangeLow);
+            }
+            if (stockPurOptResourceParams.percentFrom52WeekLowRangeHigh.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => ((x.CurrentPrice - x.YearLow) / x.YearLow) * 100 > stockPurOptResourceParams.percentFrom52WeekLowRangeHigh);
+            }
+            if (stockPurOptResourceParams.percentFrom52WeekHighRangeLow.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => ((x.CurrentPrice - x.YearHigh) / x.YearHigh) * 100 < stockPurOptResourceParams.percentFrom52WeekHighRangeLow);
+            }
 
-           ;
-            */
-            // var recsInfo = detailInfo.ToList();
+            if (stockPurOptResourceParams.percentFrom52WeekHighRangeHigh.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => ((x.CurrentPrice - x.YearHigh) / x.YearHigh) * 100 > stockPurOptResourceParams.percentFrom52WeekHighRangeHigh);
+            }
 
             IQueryable<SecurityPercentStatJoin> securityPercentStatJoin =
                 securityRecs.Join(_context.SecurityPercentageStatistics, x => x.Id,
@@ -980,9 +979,18 @@ namespace sqs_processor.Services.repos
 
         public bool IsMarketClosed(DateTime currentDate)
         {
-
-            
-            if (currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday )
+            if(currentDate.Hour < 14){//time is before 9am
+                return true;
+            }
+            else if(currentDate.Hour == 14 && currentDate.Minute < 30)//time is 9am  est and the minutes is under 30
+            {
+                return true;
+            }
+            if (currentDate.Hour > 21 )//time is 4pm EST
+            {
+                return true;
+            }            
+            else if(currentDate.DayOfWeek == DayOfWeek.Saturday || currentDate.DayOfWeek == DayOfWeek.Sunday )// day is not a saturday or sunday
             {
                 return true;
             }
@@ -991,7 +999,7 @@ namespace sqs_processor.Services.repos
                 
                 var date = currentDate.Date;
                 int holidayFind =  _context.TradingHolidays.Where(x => x.HolidayDate == date).ToList().Count;
-                if (holidayFind>0)
+                if (holidayFind>0)//if a holiday is found for the day
                 {
                     return true;
                 }
@@ -2107,10 +2115,7 @@ namespace sqs_processor.Services.repos
 
         }
 
-        public bool IsHoliday(DateTime currentDate)
-        {
-            throw new NotImplementedException();
-        }
+        
     }
 }
 

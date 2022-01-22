@@ -87,7 +87,6 @@ namespace sqs_processor.Services.repos
 
         public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords);
         public bool IsMarketClosed(DateTime currentDate);
-        public bool IsHoliday(DateTime currentDate);
 
         public List<StockScreener> GetStockScreeners();
         public StockScreenerSearchResourceParameters GetStockScreenerSearchDetails(int stockScreenId);

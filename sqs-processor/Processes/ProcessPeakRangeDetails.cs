@@ -73,8 +73,8 @@ namespace sqs_processor.Processes
                                         if (peakrangedetails.MaxRangeLength < daysRange)
                                         {
                                             peakrangedetails.MaxRangeLength = daysRange;
-                                            peakrangedetails.MaxRangeDateStart = currentDateLow;
-                                            peakrangedetails.MaxRangeDateEnd = currentDateLow.AddDays(daysRange);
+                                            peakrangedetails.MaxRangeDateStart = rangeStart;
+                                            peakrangedetails.MaxRangeDateEnd = rangeStart.AddDays(daysRange);
                                         }
                                         peakrangedetails.RangeCount += 1;
                                         localPeakRanges[rangeName] = peakrangedetails;
@@ -87,8 +87,8 @@ namespace sqs_processor.Processes
                                         peakrangedetails.MaxRangeLength = daysRange;
                                         peakrangedetails.RangeCount = 1;
                                         peakrangedetails.SecurityId = security.Id;
-                                        peakrangedetails.MaxRangeDateStart = currentDateLow;
-                                        peakrangedetails.MaxRangeDateEnd = currentDateLow.AddDays(daysRange);
+                                        peakrangedetails.MaxRangeDateStart = rangeStart;
+                                        peakrangedetails.MaxRangeDateEnd = rangeStart.AddDays(daysRange);
                                         peakrangedetails.DateCreated = DateTime.Now;
                                         peakrangedetails.DateModified = DateTime.Now;
                                         localPeakRanges[rangeName] = peakrangedetails;
@@ -122,7 +122,7 @@ namespace sqs_processor.Processes
                     currentPeakRange.SecurityId = security.Id;
                     currentPeakRange.RangeName = (percentRankingSet * 5).ToString() + "% - " + (Math.Round((percentRankingSet * 5) + 4.99, 2)).ToString() + "%";
                     currentPeakRange.RangeLength = daysRange;
-                    currentPeakRange.RangeDateStart = currentDateLow;
+                    currentPeakRange.RangeDateStart = rangeStart;
                     currentPeakRange.PeakRangeCurrentPercentage = (decimal)((highRange - security.CurrentPrice) / highRange) * 100;
                     currentPeakRange.DateCreated = DateTime.Now;
                     currentPeakRange.DateModified = DateTime.Now;

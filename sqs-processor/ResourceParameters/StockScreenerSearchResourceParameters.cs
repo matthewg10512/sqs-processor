@@ -21,5 +21,12 @@ namespace sqs_processor.ResourceParameters
 
         public string percentDropType { get; set; }
         public string calculatedPercentDropType { get; set; }
+
+        public decimal? percentFrom52WeekLowRangeLow { get; set; }
+        public decimal? percentFrom52WeekLowRangeHigh { get; set; }
+
+        public decimal? percentFrom52WeekHighRangeLow { get; set; }
+        public decimal? percentFrom52WeekHighRangeHigh { get; set; }
+
     }
 }

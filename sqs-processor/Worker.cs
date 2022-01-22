@@ -47,8 +47,6 @@ namespace sqs_processor
             if (objectType != null)
             {
             
-                ConstructorInfo[] constructorInfoObj = objectType.GetConstructors();
-                
                 IProcess t;
                 t = Activator.CreateInstance(objectType, _serviceFactory) as IProcess;
                 t.RunTask();
@@ -125,7 +123,7 @@ namespace sqs_processor
                      //   CreateWorkerClass("sqs_processor.Processes.ProcessAllDividends");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessAllEarnings");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");
-                    // CreateWorkerClass("sqs_processor.Processes.ProcessStockScreenerAlerts");
+                   // CreateWorkerClass("sqs_processor.Processes.ProcessStockScreenerAlerts");
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
 

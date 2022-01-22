@@ -27,19 +27,42 @@ namespace sqs_processor.Processes
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
 
             var marketClosed = _unitOfWork.securityRepository.IsMarketClosed(DateTime.UtcNow);
-
+            if (marketClosed)//the market is closed so we don't want to process anything
+            {
+                return;
+            }
             var stockScreeners = _unitOfWork.securityRepository.GetStockScreeners();
 
             foreach (var stockScreener in stockScreeners)
             {
-                if(stockScreener.AlertType != 1)
-                {
-                    continue;
-                }
+
 
                 var screenAlertsType = _unitOfWork.securityRepository.GetStockScreenerAlertType(stockScreener.AlertType);
 
-                StockScreenerSearchResourceParameters stockScreenResourceParams = _unitOfWork.securityRepository.GetStockScreenerSearchDetails(stockScreener.id);
+                if (screenAlertsType.frequency == 2)//Daily
+                {
+                    if(!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >=50))
+                    {
+                        continue;
+                    }
+                }
+
+                if (screenAlertsType.frequency == 3)//End of week Friday
+                {
+                    if (!(DateTime.UtcNow.DayOfWeek == DayOfWeek.Friday))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 50))
+                        {
+                            continue;
+                        }
+                    }
+                }
+
+                    StockScreenerSearchResourceParameters stockScreenResourceParams = _unitOfWork.securityRepository.GetStockScreenerSearchDetails(stockScreener.id);
 
                 var screenerResults = _unitOfWork.securityRepository.GetStockScreenerResults(stockScreenResourceParams);
 
@@ -73,9 +96,10 @@ namespace sqs_processor.Processes
                 Console.WriteLine("message" + message);
                 if (message != "")
                 {
-                    message = Environment.NewLine + stockScreener.Name + message;
+                    System.Threading.Thread.Sleep(10000);
+                    string newmessage = Environment.NewLine + stockScreener.Name + message;
 
-                    _amazonUtility.SendSNSMessage(screenAlertsType.awsSNSURL, message);
+                    _amazonUtility.SendSNSMessage(screenAlertsType.awsSNSURL, newmessage);
                 }
 
             }
