@@ -705,6 +705,18 @@ namespace sqs_processor.Services.repos
                                 propertyInfo.SetValue(stockScreenResourceParams, decimal.Parse(criteria.Value), null);
                             }
                             break;
+
+                        case "bool":
+
+                            if (criteria.Value == "")
+                            {
+                                propertyInfo.SetValue(stockScreenResourceParams, null, null);
+                            }
+                            else
+                            {
+                                propertyInfo.SetValue(stockScreenResourceParams, bool.Parse(criteria.Value), null);
+                            }
+                            break;
                         case "string":
                             propertyInfo.SetValue(stockScreenResourceParams, criteria.Value, null);
                             break;
@@ -760,6 +772,10 @@ namespace sqs_processor.Services.repos
             if (stockPurOptResourceParams.percentFrom52WeekHighRangeHigh.HasValue)
             {
                 securityRecs = securityRecs.Where(x => ((x.CurrentPrice - x.YearHigh) / x.YearHigh) * 100 > stockPurOptResourceParams.percentFrom52WeekHighRangeHigh);
+            }
+            if (stockPurOptResourceParams.onlyPreferred.HasValue && stockPurOptResourceParams.onlyPreferred.Value == true)
+            {
+                securityRecs = securityRecs.Where(x => x.preferred == true);
             }
 
             IQueryable<SecurityPercentStatJoin> securityPercentStatJoin =
@@ -1790,7 +1806,7 @@ namespace sqs_processor.Services.repos
         }
 
 
-        public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords)
+        public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords, StockScreenerAlertType screenAlertsType)
         {
             StringBuilder messageString = new StringBuilder();
 
@@ -1801,9 +1817,24 @@ namespace sqs_processor.Services.repos
             foreach (var securityRec in securityRecs)
             {
 
-                messageString.Append(Environment.NewLine +
-                    (securityRec.Name.Length > 15 ? securityRec.Name.Substring(0,15) + ".." : securityRec.Name)
-                    + "(" + securityRec.Symbol + ") " + securityRec.CurrentPrice.ToString() + "(" + securityRec.PercentageChange.ToString() + "%)" );
+                switch (screenAlertsType.AlertType)
+                {
+                    case "EMAIL":
+                        messageString.Append(Environment.NewLine +
+                     (securityRec.Name)
+                     + "(" + securityRec.Symbol + ") " + securityRec.CurrentPrice.ToString() + "(" + securityRec.PercentageChange.ToString() + "%) Percent from Year Low: "
+                     + decimal.Round(((decimal)(((securityRec.YearLow - securityRec.CurrentPrice) / securityRec.YearLow) * 100)), 2).ToString() + "% Percent from Year High: " +
+                    decimal.Round(((decimal)(((securityRec.CurrentPrice - securityRec.YearHigh) / securityRec.YearHigh) * 100)), 2).ToString()
+                     );
+                        break;
+                    case "SMS":
+                    default:
+                        messageString.Append(Environment.NewLine +
+                       (securityRec.Name.Length > 15 ? securityRec.Name.Substring(0, 15) + ".." : securityRec.Name)
+                       + "(" + securityRec.Symbol + ") " + securityRec.CurrentPrice.ToString() + "(" + securityRec.PercentageChange.ToString() + "%)");
+                        break;
+
+                }
             }
 
 

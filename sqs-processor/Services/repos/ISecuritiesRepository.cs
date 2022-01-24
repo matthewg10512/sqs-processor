@@ -85,7 +85,7 @@ namespace sqs_processor.Services.repos
 
         public void AddStockScreenerAlertsHistoryRecords(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords);
 
-        public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords);
+        public string ConvertStringScreenerAlertTypeMessage(List<StockScreenerAlertsHistoryDto> stockScreenerAlertsHistoryRecords, StockScreenerAlertType screenAlertsType);
         public bool IsMarketClosed(DateTime currentDate);
 
         public List<StockScreener> GetStockScreeners();

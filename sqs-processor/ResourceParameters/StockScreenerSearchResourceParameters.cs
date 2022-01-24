@@ -28,5 +28,7 @@ namespace sqs_processor.ResourceParameters
         public decimal? percentFrom52WeekHighRangeLow { get; set; }
         public decimal? percentFrom52WeekHighRangeHigh { get; set; }
 
+            public bool? onlyPreferred { get; set; }
+
     }
 }

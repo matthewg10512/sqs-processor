@@ -12,6 +12,7 @@ namespace sqs_processor.Entities
        public int id { get; set; }
         public int frequency{ get; set; }
         public string awsSNSURL{ get; set; }
-
+        public string AlertType { get; set; }
+        
     }
 }

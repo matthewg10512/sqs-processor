@@ -39,6 +39,10 @@ namespace sqs_processor.Processes
 
                 var screenAlertsType = _unitOfWork.securityRepository.GetStockScreenerAlertType(stockScreener.AlertType);
 
+                if(screenAlertsType.awsSNSURL == "")
+                {
+                    continue;
+                }
                 if (screenAlertsType.frequency == 2)//Daily
                 {
                     if(!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >=50))
@@ -66,10 +70,7 @@ namespace sqs_processor.Processes
 
                 var screenerResults = _unitOfWork.securityRepository.GetStockScreenerResults(stockScreenResourceParams);
 
-                if (stockScreener.OnlyPreferred)
-                {
-                    screenerResults = screenerResults.Where(x => x.Security.preferred == true).ToList();
-                }
+                
                 var recordstoAdd = _unitOfWork.securityRepository.GetNewStockScreenerAlertsHistory(screenerResults.Select(x => x.Security).ToList(), stockScreener.id);
 
                 _unitOfWork.securityRepository.AddStockScreenerAlertsHistoryRecords(recordstoAdd);
@@ -92,7 +93,7 @@ namespace sqs_processor.Processes
 
                 }
                 
-                string message = _unitOfWork.securityRepository.ConvertStringScreenerAlertTypeMessage(recordstoAdd);
+                string message = _unitOfWork.securityRepository.ConvertStringScreenerAlertTypeMessage(recordstoAdd, screenAlertsType);
                 Console.WriteLine("message" + message);
                 if (message != "")
                 {
