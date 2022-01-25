@@ -48,7 +48,7 @@ namespace sqs_processor.Processes
                     }
                     if (screenAlertsType.frequency == 2)//Daily
                     {
-                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 30)    )
+                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 40)    )
                         {
                              continue;
                         }
@@ -62,7 +62,7 @@ namespace sqs_processor.Processes
                         }
                         else
                         {
-                            if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 30))
+                            if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 40))
                             {
                                 continue;
                             }
