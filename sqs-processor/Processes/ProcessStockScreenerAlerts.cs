@@ -36,72 +36,83 @@ namespace sqs_processor.Processes
             foreach (var stockScreener in stockScreeners)
             {
 
+                int screenerId = stockScreener.id;
 
-                var screenAlertsType = _unitOfWork.securityRepository.GetStockScreenerAlertType(stockScreener.AlertType);
+                try
+                {
+                    var screenAlertsType = _unitOfWork.securityRepository.GetStockScreenerAlertType(stockScreener.AlertType);
 
-                if(screenAlertsType.awsSNSURL == "")
-                {
-                    continue;
-                }
-                if (screenAlertsType.frequency == 2)//Daily
-                {
-                    if(!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >=50))
+                    if (screenAlertsType.awsSNSURL == "")
                     {
                         continue;
                     }
-                }
-
-                if (screenAlertsType.frequency == 3)//End of week Friday
-                {
-                    if (!(DateTime.UtcNow.DayOfWeek == DayOfWeek.Friday))
+                    if (screenAlertsType.frequency == 2)//Daily
                     {
-                        continue;
+                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 30)    )
+                        {
+                             continue;
+                        }
                     }
-                    else
+
+                    if (screenAlertsType.frequency == 3)//End of week Friday
                     {
-                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 50))
+                        if (!(DateTime.UtcNow.DayOfWeek == DayOfWeek.Friday))
                         {
                             continue;
                         }
+                        else
+                        {
+                            if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 30))
+                            {
+                                continue;
+                            }
+                        }
                     }
-                }
 
                     StockScreenerSearchResourceParameters stockScreenResourceParams = _unitOfWork.securityRepository.GetStockScreenerSearchDetails(stockScreener.id);
 
-                var screenerResults = _unitOfWork.securityRepository.GetStockScreenerResults(stockScreenResourceParams);
-
-                
-                var recordstoAdd = _unitOfWork.securityRepository.GetNewStockScreenerAlertsHistory(screenerResults.Select(x => x.Security).ToList(), stockScreener.id);
-
-                _unitOfWork.securityRepository.AddStockScreenerAlertsHistoryRecords(recordstoAdd);
+                    var screenerResults = _unitOfWork.securityRepository.GetStockScreenerResults(stockScreenResourceParams);
 
 
-                if (stockScreener.AutoTrade)
-                {
+                    var recordstoAdd = _unitOfWork.securityRepository.GetNewStockScreenerAlertsHistory(screenerResults.Select(x => x.Security).ToList(), stockScreener.id);
 
-                    var securityTrades = screenerResults.Join(recordstoAdd, x => x.Security.Id, y => y.SecurityId, (screenerResult, recordstoAdd) => new { screenerResult, recordstoAdd })
-                        .Select(x => new AutoSecurityTrade {
-                            PercentageLevel = 1,
-                            PurchaseDate = DateTime.Now, 
-                            PurchasePrice = x.screenerResult.Security.CurrentPrice, 
-                            SecurityId = x.screenerResult.Security.Id, 
-                            SharesBought= 1 }).ToList();
-                    
-                    //Console.WriteLine("securityTrades Length" + securityTrades.Count);
-                    _unitOfWork.securityRepository.ProcessAutoSecurityTrades(securityTrades);
+                    _unitOfWork.securityRepository.AddStockScreenerAlertsHistoryRecords(recordstoAdd);
 
+
+                    if (stockScreener.AutoTrade)
+                    {
+
+                        var securityTrades = screenerResults.Join(recordstoAdd, x => x.Security.Id, y => y.SecurityId, (screenerResult, recordstoAdd) => new { screenerResult, recordstoAdd })
+                            .Select(x => new AutoSecurityTrade
+                            {
+                                PercentageLevel = 1,
+                                PurchaseDate = DateTime.Now,
+                                PurchasePrice = x.screenerResult.Security.CurrentPrice,
+                                SecurityId = x.screenerResult.Security.Id,
+                                SharesBought = 1
+                            }).ToList();
+
+                        //Console.WriteLine("securityTrades Length" + securityTrades.Count);
+                        _unitOfWork.securityRepository.ProcessAutoSecurityTrades(securityTrades);
+
+
+                    }
+
+                    string message = _unitOfWork.securityRepository.ConvertStringScreenerAlertTypeMessage(recordstoAdd, screenAlertsType);
+                    Console.WriteLine("message" + message);
+                    if (message != "")
+                    {
+                        string newmessage = Environment.NewLine + stockScreener.Name + message;
+                        _amazonUtility.SendSNSMessage(screenAlertsType.awsSNSURL, newmessage);
+                        break;
+                    }
 
                 }
-                
-                string message = _unitOfWork.securityRepository.ConvertStringScreenerAlertTypeMessage(recordstoAdd, screenAlertsType);
-                Console.WriteLine("message" + message);
-                if (message != "")
+                catch(Exception ex)
                 {
-                    System.Threading.Thread.Sleep(10000);
-                    string newmessage = Environment.NewLine + stockScreener.Name + message;
 
-                    _amazonUtility.SendSNSMessage(screenAlertsType.awsSNSURL, newmessage);
                 }
+
 
             }
 

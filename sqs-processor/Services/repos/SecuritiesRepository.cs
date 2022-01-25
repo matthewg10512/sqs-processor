@@ -678,52 +678,62 @@ namespace sqs_processor.Services.repos
 
             foreach(var criteria in criterias)
             {
-                PropertyInfo propertyInfo = stockScreenResourceParams.GetType().GetProperty(criteria.ObjectName);
-                // make sure object has the property we are after
-                if (propertyInfo != null)
+
+                try
                 {
-                    switch (criteria.ObjectType)
+                    PropertyInfo propertyInfo = stockScreenResourceParams.GetType().GetProperty(criteria.ObjectName);
+                    // make sure object has the property we are after
+                    if (propertyInfo != null)
                     {
-                        case "int":
-                            if (criteria.Value == "")
-                            {
-                                propertyInfo.SetValue(stockScreenResourceParams, null, null);
-                            }
-                            else
-                            {
-                                propertyInfo.SetValue(stockScreenResourceParams, Int32.Parse(criteria.Value), null);
-                            }
-                            break;
-                        case "decimal":
+                        switch (criteria.ObjectType)
+                        {
+                            case "int":
+                                if (criteria.Value == "" || criteria.Value == "null")
+                                {
+                                    propertyInfo.SetValue(stockScreenResourceParams, null, null);
+                                }
+                                else
+                                {
+                                    propertyInfo.SetValue(stockScreenResourceParams, Int32.Parse(criteria.Value), null);
+                                }
+                                break;
+                            case "decimal":
 
-                            if (criteria.Value == "")
-                            {
-                                propertyInfo.SetValue(stockScreenResourceParams, null, null);
-                            }
-                            else
-                            {
-                                propertyInfo.SetValue(stockScreenResourceParams, decimal.Parse(criteria.Value), null);
-                            }
-                            break;
+                                if (criteria.Value == "" || criteria.Value == "null")
+                                {
+                                    propertyInfo.SetValue(stockScreenResourceParams, null, null);
+                                }
+                                else
+                                {
+                                    propertyInfo.SetValue(stockScreenResourceParams, decimal.Parse(criteria.Value), null);
+                                }
+                                break;
 
-                        case "bool":
+                            case "bool":
 
-                            if (criteria.Value == "")
-                            {
-                                propertyInfo.SetValue(stockScreenResourceParams, null, null);
-                            }
-                            else
-                            {
-                                propertyInfo.SetValue(stockScreenResourceParams, bool.Parse(criteria.Value), null);
-                            }
-                            break;
-                        case "string":
-                            propertyInfo.SetValue(stockScreenResourceParams, criteria.Value, null);
-                            break;
+                                if (criteria.Value == "" || criteria.Value == "null")
+                                {
+                                    propertyInfo.SetValue(stockScreenResourceParams, null, null);
+                                }
+                                else
+                                {
+                                    propertyInfo.SetValue(stockScreenResourceParams, bool.Parse(criteria.Value), null);
+                                }
+                                break;
+                            case "string":
+                                propertyInfo.SetValue(stockScreenResourceParams, criteria.Value, null);
+                                break;
+                        }
+                        // propertyInfo.PropertyType.Name
+
                     }
-                   // propertyInfo.PropertyType.Name
-                    
                 }
+                catch(Exception ex)
+                {
+
+                }
+                //percentFrom52WeekLowRangeHigh
+              
             }
             stockScreenResourceParams.securityLastModifiedRangeLow = DateTime.Now.AddDays(-3);
 
