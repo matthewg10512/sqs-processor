@@ -986,7 +986,14 @@ namespace sqs_processor.Services.repos
                 y => y.SecurityId, (s, current) => new { s, current }).Select(x=>x.s).ToList();
            var newRecords = securities.Except(updatedAlready).ToList();
 
-            return newRecords.Select(x => new StockScreenerAlertsHistoryDto { DateRecorded = DateTime.UtcNow, SecurityId = x.Id, StockScreenerId = stockScreenerId }).ToList();
+            return newRecords.Select(x => new StockScreenerAlertsHistoryDto { 
+                DateRecorded = DateTime.UtcNow, 
+                SecurityId = x.Id, 
+                StockScreenerId = stockScreenerId
+            ,alertPercent = (decimal)x.PercentageChange,
+             alertPrice = x.CurrentPrice
+            
+            }).ToList();
 
         }
 

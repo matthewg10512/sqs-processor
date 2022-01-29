@@ -13,5 +13,7 @@ namespace sqs_processor.Entities
         public int SecurityId { get; set; }
         public int StockScreenerId { get; set; }
         public DateTime DateRecorded { get; set; }
+        public decimal alertPrice { get; set; }
+        public decimal alertPercent { get; set; }
     }
 }
