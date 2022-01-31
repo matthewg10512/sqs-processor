@@ -990,8 +990,8 @@ namespace sqs_processor.Services.repos
                 DateRecorded = DateTime.UtcNow, 
                 SecurityId = x.Id, 
                 StockScreenerId = stockScreenerId
-            ,alertPercent = (decimal)x.PercentageChange,
-             alertPrice = x.CurrentPrice
+            ,AlertPercent = (decimal)x.PercentageChange,
+             AlertPrice = x.CurrentPrice
             
             }).ToList();
 

@@ -10,7 +10,7 @@ namespace sqs_processor.Models
         public int SecurityId { get; set; }
         public int StockScreenerId { get; set; }
         public DateTime DateRecorded { get; set; }
-        public decimal alertPrice { get; set; }
-        public decimal alertPercent { get; set; }
+        public decimal AlertPrice { get; set; }
+        public decimal AlertPercent { get; set; }
     }
 }
