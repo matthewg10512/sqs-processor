@@ -1828,7 +1828,7 @@ namespace sqs_processor.Services.repos
             StringBuilder messageString = new StringBuilder();
 
             var securityList = stockScreenerAlertsHistoryRecords.Select(x => x.SecurityId).ToList();
-            var securityRecs =   _context.Securities.Where(x => securityList.Contains(x.Id)).ToList();
+            var securityRecs =   _context.Securities.Where(x => securityList.Contains(x.Id)).OrderBy(x=>x.Name).ToList();
             
 
             foreach (var securityRec in securityRecs)
