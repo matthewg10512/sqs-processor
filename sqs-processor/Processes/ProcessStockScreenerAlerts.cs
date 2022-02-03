@@ -46,15 +46,24 @@ namespace sqs_processor.Processes
                     {
                         continue;
                     }
-                    if (screenAlertsType.frequency == 2)//Daily
+
+                    if (stockScreener.Frequency == 2)//Hourly
                     {
-                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 40)    )
+                        if (! ((DateTime.UtcNow.Minute <= 40) &&(DateTime.UtcNow.Minute >= 30)))
+                        {
+                            continue;
+                        }
+                    }
+
+                    if (stockScreener.Frequency == 3)//Daily
+                    {
+                        if (!(DateTime.UtcNow.Hour >= 20 && DateTime.UtcNow.Minute >= 45)    )
                         {
                              continue;
                         }
                     }
 
-                    if (screenAlertsType.frequency == 3)//End of week Friday
+                    if (stockScreener.Frequency == 4)//End of week Friday
                     {
                         if (!(DateTime.UtcNow.DayOfWeek == DayOfWeek.Friday))
                         {

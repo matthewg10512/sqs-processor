@@ -15,6 +15,7 @@ namespace sqs_processor.Entities
 
         public int AlertType { get; set; }
         public bool AutoTrade { get; set; }
-        
+        public int Frequency { get; set; }
+
     }
 }
