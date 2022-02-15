@@ -27,6 +27,8 @@ namespace sqs_processor.Processes
             bool firstPurchase = false;
             foreach (var security in securities)
             {
+                firstPurchaseDate = DateTime.Now;
+                firstPurchase = false;
                 if (security.CurrentPrice < 5)
                 {
                     continue;

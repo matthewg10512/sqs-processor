@@ -26,7 +26,7 @@ namespace sqs_processor.Processes
             List<SecurityForUpdateDto> securityProfile = new List<SecurityForUpdateDto>();
             foreach (var security in securities)
             {
-                if(security.Description != "")
+                if(security.Description != "" && security.Description != null)
                 {
                     continue;
                 }

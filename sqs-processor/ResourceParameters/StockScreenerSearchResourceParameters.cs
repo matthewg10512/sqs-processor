@@ -9,6 +9,7 @@ namespace sqs_processor.ResourceParameters
 
         public int? priorPurchaseEstimateSharesRangeLow { get; set; } // 60
         public int? securityVolumeRangeLow { get; set; } //100000
+        public DateTime? ipoDateRangeStart { get; set; }
         public DateTime? securityLastModifiedRangeLow { get; set; }//Prior days
 
         public decimal? securitypercentChangeRangeHigh { get; set; } //0

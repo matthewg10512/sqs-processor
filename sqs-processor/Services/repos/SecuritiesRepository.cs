@@ -754,6 +754,13 @@ namespace sqs_processor.Services.repos
             {
                 securityRecs = securityRecs.Where(x => x.Volume > stockPurOptResourceParams.securityVolumeRangeLow);
             }
+
+            if (stockPurOptResourceParams.ipoDateRangeStart.HasValue)
+            {
+                securityRecs = securityRecs.Where(x => x.IPODate >= stockPurOptResourceParams.ipoDateRangeStart);
+            }
+
+            
             if (stockPurOptResourceParams.securityLastModifiedRangeLow.HasValue)
             {
                 securityRecs = securityRecs.Where(x => x.LastModified > stockPurOptResourceParams.securityLastModifiedRangeLow);
