@@ -15,6 +15,12 @@ namespace sqs_processor.DbContexts
         IDbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
         DbSet<SecurityTask> SecurityTasks { get; set; }
         IDbSet<Dividend> Dividends { get; set; }
+        IDbSet<AuctionItem> AuctionItems { get; set; }
+        IDbSet<AuctionSite> AuctionSites { get; set; }
+        IDbSet<AuctionSearchWord> AuctionSearchWords { get; set; }
+        IDbSet<AuctionSearchSiteRun> AuctionSearchSiteRuns { get; set; }
+
+        
         IDbSet<Earning> Earnings { get; set; }
         IDbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
         IDbSet<SecurityAlert> SecurityAlerts { get; set; }

@@ -119,17 +119,20 @@ namespace sqs_processor
                     }
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");
-                    
-                     //   CreateWorkerClass("sqs_processor.Processes.ProcessAllDividends");
+
+                    //   CreateWorkerClass("sqs_processor.Processes.ProcessAllDividends");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessAllEarnings");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessStockScreenerAlerts");
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
 
+                    // CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSiteDataRetrieval");
+
+
                     //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
                     // CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurityProfiles");
-                   //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
+                    //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPriorPurchaseEstimates");
 

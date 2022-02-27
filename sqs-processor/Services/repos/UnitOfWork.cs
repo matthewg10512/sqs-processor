@@ -13,7 +13,7 @@ namespace sqs_processor.Services.repos
     {
         private ISecuritiesRepository _securityRepository;
         private IDividendsRepository _dividendRepository;
-
+        private IAuctionsRepository _auctionRepository;
         private SecuritiesLibraryContext _context;
 
         IMapper _mapper;
@@ -42,6 +42,18 @@ namespace sqs_processor.Services.repos
                      _mapper, _utility));
             }
         }
+
+
+        public IAuctionsRepository auctionRepository
+        {
+            get
+            {
+                return _auctionRepository ??
+                    (_auctionRepository = new AuctionsRepository(_context,
+                     _mapper, _utility));
+            }
+        }
+        
 
         public ISecuritiesRepository securityRepository
         {

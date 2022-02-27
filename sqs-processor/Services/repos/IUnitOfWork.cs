@@ -8,6 +8,7 @@ namespace sqs_processor.Services.repos
     {
         ISecuritiesRepository securityRepository { get; }
         IDividendsRepository dividendRepository { get; }
+        IAuctionsRepository auctionRepository { get; }
         public void Dispose();
     }
 }

@@ -17,6 +17,10 @@ namespace sqs_processor.DbContexts
 
         }
 
+        public DbSet<AuctionSearchWord> AuctionSearchWords { get; set; }
+        public DbSet<AuctionSite> AuctionSites { get; set; }
+        public DbSet<AuctionItem> AuctionItems { get; set; }
+        public DbSet<AuctionSearchSiteRun> AuctionSearchSiteRuns { get; set; }
         public DbSet<AutoSecurityTrade> AutoSecurityTrades { get; set; }
         public DbSet<HistoricalPrice> HistoricalPrices { get; set; }
 
