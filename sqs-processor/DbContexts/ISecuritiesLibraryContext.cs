@@ -20,7 +20,12 @@ namespace sqs_processor.DbContexts
         IDbSet<AuctionSearchWord> AuctionSearchWords { get; set; }
         IDbSet<AuctionSearchSiteRun> AuctionSearchSiteRuns { get; set; }
 
+        IDbSet<AuctionSiteCategoryWord> AuctionSiteCategoryWords { get; set; }
+        IDbSet<AuctionCategorySite> AuctionCategorySites { get; set; }
+        IDbSet<AuctionPageLoadCheck> AuctionPageLoadChecks { get; set; }
+
         
+        IDbSet<AuctionScriptStep> AuctionScriptSteps { get; set; }
         IDbSet<Earning> Earnings { get; set; }
         IDbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
         IDbSet<SecurityAlert> SecurityAlerts { get; set; }

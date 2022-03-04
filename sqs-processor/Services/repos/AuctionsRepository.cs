@@ -38,6 +38,21 @@ namespace sqs_processor.Services.repos
             return _context.AuctionSearchWords.ToList();
         }
 
+        public List<AuctionPageLoadCheck> GetAuctionPageLoadChecks()
+        {
+            return _context.AuctionPageLoadChecks.ToList();
+        }
+
+
+        public List<AuctionSiteCategoryWord> GetAuctionSiteCategoryWords()
+        {
+            return _context.AuctionSiteCategoryWords.ToList();
+        }
+
+        public List<AuctionScriptStep> GetAuctionScriptSteps()
+        {
+            return _context.AuctionScriptSteps.ToList();
+        }
         public List<AuctionSite> GetAuctionSites()
         {
             return _context.AuctionSites.ToList();
@@ -100,6 +115,10 @@ namespace sqs_processor.Services.repos
                ).ToList();
         }
 
+        public List<AuctionCategorySite> GetAuctionCategorySites()
+        {
+            return _context.AuctionCategorySites.ToList();
+        }
         public List<AuctionSearchSiteRun> GetAuctionSearchSiteRuns()
         {
             return _context.AuctionSearchSiteRuns.ToList();

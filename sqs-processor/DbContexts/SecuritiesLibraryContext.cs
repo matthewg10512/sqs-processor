@@ -24,6 +24,7 @@ namespace sqs_processor.DbContexts
         public DbSet<AutoSecurityTrade> AutoSecurityTrades { get; set; }
         public DbSet<HistoricalPrice> HistoricalPrices { get; set; }
 
+        public DbSet<AuctionCategorySite> AuctionCategorySites { get; set; }
         public DbSet<Dividend> Dividends { get; set; }
         public DbSet<Security> Securities { get; set; }
 
@@ -47,6 +48,12 @@ namespace sqs_processor.DbContexts
         public DbSet<StockScreenerSearchDetail> StockScreenerSearchDetails { get; set; }
         public DbSet<StockScreener> StockScreeners { get; set; }
         public DbSet<ScreenerCriteria> ScreenerCriterias { get; set; }
+
+        public DbSet<AuctionScriptStep> AuctionScriptSteps { get; set; }
+
+        public DbSet<AuctionSiteCategoryWord> AuctionSiteCategoryWords { get; set; }
+
+        public DbSet<AuctionPageLoadCheck> AuctionPageLoadChecks { get; set; }
 
         public void Save()
         {

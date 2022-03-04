@@ -12,5 +12,10 @@ namespace sqs_processor.Entities
         public string JsCode { get; set; }
         public string SearchWordReplace { get; set; }
         public string PageReplace { get; set; }
+        public int InitialUrlLaunchTime { get; set; }
+        public int PageNextLaunchTime { get; set; }
+        public int ScrapingType { get; set; }
+
+
     }
 }

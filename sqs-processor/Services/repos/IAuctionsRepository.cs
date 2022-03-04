@@ -11,10 +11,19 @@ namespace sqs_processor.Services.repos
         public List<AuctionSearchWord> GetAuctionSearchWords();
 
         public List<AuctionSearchSiteRun> GetAuctionSearchSiteRuns();
+        public List<AuctionPageLoadCheck> GetAuctionPageLoadChecks();
+
+        
+
+        public List<AuctionCategorySite> GetAuctionCategorySites();
         public void UpsertAuctionSearchSiteRun(AuctionSearchSiteRunDto auctionSearchSiteRun);
         public void UpsertAuctionItems(List<AuctionItemDto> auctionItems);
 
         public List<AuctionSite> GetAuctionSites();
+
+        public List<AuctionSiteCategoryWord> GetAuctionSiteCategoryWords();
+        
+        public List<AuctionScriptStep> GetAuctionScriptSteps();
         bool Save();
     }
 }
