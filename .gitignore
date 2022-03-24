@@ -338,3 +338,4 @@ ASALocalRun/
 
 # BeatPulse healthcheck temp database
 healthchecksdb
+/sqs-processor/.local-chromium/Win64-884014/chrome-win

@@ -173,7 +173,8 @@ namespace sqs_processor.Services.Utility
                 loopCount += 1;
                 if (loopCount > 300)
                 {
-                    _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
+                    string sqlCallinfo = fullStringSqlCall.ToString();
+                    _context.Database.ExecuteSqlRaw(sqlCallinfo);
                     loopCount = 0;
                     fullStringSqlCall = new StringBuilder();
                 }
@@ -181,7 +182,8 @@ namespace sqs_processor.Services.Utility
             }
             if (loopCount > 0)
             {
-                _context.Database.ExecuteSqlRaw(fullStringSqlCall.ToString());
+                string sqlCall = fullStringSqlCall.ToString();
+                _context.Database.ExecuteSqlRaw(sqlCall);
 
             }
 

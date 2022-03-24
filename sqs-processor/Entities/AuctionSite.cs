@@ -15,7 +15,9 @@ namespace sqs_processor.Entities
         public int InitialUrlLaunchTime { get; set; }
         public int PageNextLaunchTime { get; set; }
         public int ScrapingType { get; set; }
-
+        public string JsCodeSinglePage { get; set; }
+        public int StartPaging { get; set; }
+        public string PrependProductSiteUrl { get; set; }
 
     }
 }

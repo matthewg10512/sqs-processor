@@ -1,4 +1,5 @@
-﻿using PuppeteerSharp;
+﻿using HtmlAgilityPack;
+using PuppeteerSharp;
 using PuppeteerSharp.Input;
 using sqs_processor.Entities;
 using sqs_processor.Models;
@@ -7,9 +8,11 @@ using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace sqs_processor.Processes
 {
@@ -81,232 +84,265 @@ namespace sqs_processor.Processes
                 await page.ClickAsync(searchScriptType.JsCode, new ClickOptions() { Button = MouseButton.Left });
             }
         }
-        
+
         public static async Task GetAuctionItems(IUnitOfWork _unitOfWork)
         {
             List<AuctionSearchWord> auctionSearchWords = _unitOfWork.auctionRepository.GetAuctionSearchWords();//search words to go through
             List<AuctionSite> auctionSites = _unitOfWork.auctionRepository.GetAuctionSites(); //list of auction sites
             List<AuctionSearchSiteRun> auctionSearchSiteRuns = _unitOfWork.auctionRepository.GetAuctionSearchSiteRuns();//list of auction sites and search words when they were run
             List<AuctionScriptStep> auctionScriptSteps = _unitOfWork.auctionRepository.GetAuctionScriptSteps(); //list of script steps tied to the 
-           
+
             List<AuctionCategorySite> auctionCategorySites = _unitOfWork.auctionRepository.GetAuctionCategorySites();
             List<AuctionSiteCategoryWord> auctionSiteCategoryWords = _unitOfWork.auctionRepository.GetAuctionSiteCategoryWords();//sites and categories tied to the search words
 
             List<AuctionPageLoadCheck> auctionPageLoadChecks = _unitOfWork.auctionRepository.GetAuctionPageLoadChecks();
-            
 
 
+
+
+            /*
+            var client = new WebClient();
+            var content = client.DownloadString("https://www.shopthesalvationarmy.com/Browse?FullTextQuery=sea&page=0");
+
+            HtmlDocument doc = new HtmlDocument();
+            doc.LoadHtml(content);
+            HtmlNodeCollection nodes = doc.DocumentNode.ChildNodes;
+            */
+
+
+
+
+            string detail = "";
+            /*
+            foreach (HtmlNode row in nodes)
+            {
+                var textinfo = row.Name;
+                HtmlNodeCollection nodesinfo = row.ChildNodes;
+
+                foreach (HtmlNode nodeinfo in nodesinfo)
+                {
+                     textinfo = nodeinfo.Name;
+                }
+
+
+                }
+            */
+
+            string details = "";// ContextStaticAttribute;
+
+
+
+            // return;
+
+            int counterBreakMax = 40000;
+            int counterBreak = 0;
             foreach (var auctionSite in auctionSites)
             {
-
+                if (counterBreak > counterBreakMax)
+                {
+                    break;
+                }
                 var auctionSitePageLoadChecks = auctionPageLoadChecks.Where(x => x.AuctionSiteId == auctionSite.Id).ToList();
                 var siteAuctionScriptSteps = auctionScriptSteps.Where(x => x.AuctionSiteId == auctionSite.Id);
 
-                if (auctionSite.Id != 2)
+                if (auctionSite.Id != 3)
                 {
-                   continue;
+                    //continue;
                 }
                 foreach (var auctionSearchWord in auctionSearchWords)
                 {
-
-                   string categoryId = AssignCategoryId(auctionSearchWord, auctionSiteCategoryWords, auctionCategorySites);
+                    if (counterBreak > counterBreakMax)
+                    {
+                        break;
+                    }
+                    string categoryId = AssignCategoryId(auctionSearchWord, auctionSiteCategoryWords, auctionCategorySites);
 
                     if (auctionSearchWord.SearchWord != "sea")
                     {
-                        //continue;
+                        // continue;
                     }
                     DateTime currentDate = DateTime.UtcNow.AddDays(-2);
                     if (auctionSearchSiteRuns.Where(x => x.AuctionSiteId == auctionSite.Id && x.AuctionSearchWordId == auctionSearchWord.Id && x.DateSearch > currentDate).Count() > 0)
                     {
-                       // continue;
+                        continue;
                     }
+
+
+
+
 
                     try
                     {
-
-                        var options = new LaunchOptions { Headless = false };
-                        Console.WriteLine("Downloading chromium");
-
-                        await new BrowserFetcher().DownloadAsync(BrowserFetcher.DefaultRevision);
-                        
-
-                        using (var browser = await Puppeteer.LaunchAsync(options))
-                        using (var page = await browser.NewPageAsync())
+                        List<SiteAuctionItemDto> totalSearchresults = new List<SiteAuctionItemDto>();
+                        switch (auctionSite.ScrapingType)
                         {
-                            List<SiteAuctionItemDto> totalSearchresults = new List<SiteAuctionItemDto>();
-                            bool processNextPage = true;
-                            int pageRecords = 1;
-                            while (processNextPage)
-                            {
-                                //alc
-                                string url = auctionSite.SearchURL.Replace(auctionSite.SearchWordReplace, auctionSearchWord.SearchWord)
-                                    .Replace(auctionSite.PageReplace, pageRecords.ToString());
 
+                            case (int)ScreenerType.WebClient:
+                                totalSearchresults = ProcessWebClient(auctionSite, auctionSearchWord);
 
+                                break;
 
-
-                                Console.WriteLine("Navigating to " + url);
-                                // await page.GoToAsync(url);
-
-
-                                if (pageRecords == 1)
+                            case (int)ScreenerType.PuppeteerURL:
+                            case (int)ScreenerType.PuppeteerJavaScript:
                                 {
-                                    switch (auctionSite.ScrapingType)
+                                    var options = new LaunchOptions { Headless = true };
+                                    Console.WriteLine("Downloading chromium");
+                                    await new BrowserFetcher().DownloadAsync(BrowserFetcher.DefaultRevision);
+                                    using (var browser = await Puppeteer.LaunchAsync(options))
+                                    using (var page = await browser.NewPageAsync())
                                     {
+                                        bool processNextPage = true;
+                                        int pageRecords = 0;
+                                        while (processNextPage)
+                                        {
+                                            //alc
+                                            string url = auctionSite.SearchURL.Replace(auctionSite.SearchWordReplace, auctionSearchWord.SearchWord)
+                                                .Replace(auctionSite.PageReplace, (auctionSite.StartPaging + pageRecords).ToString());
 
-                                        case (int)ScreenerType.PuppeteerURL:
-                                            await page.GoToAsync(url);
-                                           // Thread.Sleep(10000);
-                                            break;
+                                            if (categoryId != null && categoryId != "")
+                                            {
+                                                url = url.Replace("categoryRecReplace", categoryId);
+                                            }
+                                            else
+                                            {
+                                                url = url.Replace("categoryRecReplace", "");
+                                            }
+                                            Console.WriteLine("Navigating to " + url);
+                                            // await page.GoToAsync(url);
 
-                                        case (int)ScreenerType.PuppeteerJavaScript:
-                                            await page.GoToAsync(url);
-                                            Thread.Sleep(8000);
+                                            try
+                                            {
+                                                if (pageRecords == 0)
+                                                {
+                                                    switch (auctionSite.ScrapingType)
+                                                    {
+                                                        case (int)ScreenerType.PuppeteerURL:
+                                                            await page.GoToAsync(url);
+                                                            // Thread.Sleep(10000);
+                                                            break;
+                                                        case (int)ScreenerType.PuppeteerJavaScript:
+                                                            await page.GoToAsync(url);
+                                                            Thread.Sleep(8000);
+                                                            var searchScriptTypes = siteAuctionScriptSteps.Where(x => x.ActionGroupType == 1);//search
+                                                            searchScriptTypes = searchScriptTypes.OrderBy(x => x.StepOrder).ToList();
+                                                            foreach (var searchScriptType in searchScriptTypes)
+                                                            {
+                                                                await ProcessScriptStep(searchScriptType, page, auctionSearchWord, categoryId);
+                                                                Thread.Sleep(searchScriptType.ThreadSleep);
+                                                            }
 
-                                            
+                                                            break;
+                                                    }
+                                                }
+                                                else
+                                                {//Next Page
+                                                    switch (auctionSite.ScrapingType)
+                                                    {
+                                                        case (int)ScreenerType.PuppeteerURL:
+                                                            await page.GoToAsync(url);
+                                                            // Thread.Sleep(10000);
+                                                            break;
 
-                                            var searchScriptTypes = siteAuctionScriptSteps.Where(x => x.ActionGroupType == 1);//search
-                                            searchScriptTypes = searchScriptTypes.OrderBy(x => x.StepOrder).ToList();
-                                            foreach(var searchScriptType in searchScriptTypes)
+                                                        case (int)ScreenerType.PuppeteerJavaScript:
+                                                            //await page.ClickAsync("[class='pagination__next icon-link']", new ClickOptions() { Button = MouseButton.Left });
+
+
+                                                            var searchScriptTypes = siteAuctionScriptSteps.Where(x => x.ActionGroupType == 2);//search
+                                                            searchScriptTypes = searchScriptTypes.OrderBy(x => x.StepOrder).ToList();
+                                                            foreach (var searchScriptType in searchScriptTypes)
+                                                            {
+                                                                await ProcessScriptStep(searchScriptType, page, auctionSearchWord, categoryId);
+                                                                Thread.Sleep(searchScriptType.ThreadSleep);
+                                                            }
+                                                            break;
+                                                    }
+
+                                                }
+                                                if (auctionSitePageLoadChecks.Count > 0)
+                                                {
+                                                    auctionSitePageLoadChecks = auctionSitePageLoadChecks.OrderBy(x => x.WordGrouping).ToList();
+                                                    int countCheck = 0;
+                                                    string innerHTMLVal = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
+                                                    bool pageHasLoaded = false;
+                                                    while ((!pageHasLoaded
+                                                           )
+                                                           && countCheck < 5)
+                                                    {
+                                                        bool currentGroupingPageLoaded = CheckCurrentGroupingPageLoaded(auctionSitePageLoadChecks, innerHTMLVal);
+                                                        if (currentGroupingPageLoaded)
+                                                        {
+                                                            pageHasLoaded = true;
+                                                        }
+                                                        Thread.Sleep(2000);
+                                                        innerHTMLVal = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
+                                                        countCheck += 1;
+                                                    }
+                                                    if (countCheck >= 5) { countCheck += 1; }
+
+
+                                                }
+                                                else
+                                                {
+                                                    Thread.Sleep(10000);
+                                                }
+
+
+                                            }
+                                            catch(Exception ex) {     }
+
+
+                                            try
                                             {
 
-                                              await  ProcessScriptStep(searchScriptType, page,auctionSearchWord, categoryId);
-                                              Thread.Sleep(searchScriptType.ThreadSleep);
+
+                                                SiteAuctionItemDto[] siteResultsCurrentPull = await page.EvaluateFunctionAsync<SiteAuctionItemDto[]>(auctionSite.JsCode);
+                                                string hrefValue = await page.EvaluateFunctionAsync<string>("() => {return window.location.href;} ");
+
+                                                Console.WriteLine(hrefValue);
+                                                if (siteResultsCurrentPull == null || siteResultsCurrentPull.Length < 40 || totalSearchresults.Count > 500)
+                                                {
+                                                    processNextPage = false;
+                                                }
+                                                pageRecords += 1;
+                                                //BOT_MAX_PAGE_NUMBER_EXCEEDED
+
+                                                //string CheckinnerHTML = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
+                                                var missingRecords = FindMissingRecords(totalSearchresults, siteResultsCurrentPull);
+
+                                                if (missingRecords.Count == 0)
+                                                {
+                                                    processNextPage = false;
+                                                }
+                                                else
+                                                {
+
+                                                    totalSearchresults.AddRange(missingRecords);
+                                                }
+
                                             }
-                                           
-                                            break;
-                                    }
-                                }
-                                else
-                                {//Next Page
-                                    switch (auctionSite.ScrapingType)
-                                    {
-
-                                        case (int)ScreenerType.PuppeteerURL:
-                                            await page.GoToAsync(url);
-                                           // Thread.Sleep(10000);
-                                            break;
-
-                                        case (int)ScreenerType.PuppeteerJavaScript:
-                                            //await page.ClickAsync("[class='pagination__next icon-link']", new ClickOptions() { Button = MouseButton.Left });
-
-
-                                            var searchScriptTypes = siteAuctionScriptSteps.Where(x => x.ActionGroupType == 2);//search
-                                            searchScriptTypes = searchScriptTypes.OrderBy(x => x.StepOrder).ToList();
-                                            foreach (var searchScriptType in searchScriptTypes)
+                                            catch (Exception ex)
                                             {
-                                                await ProcessScriptStep(searchScriptType, page, auctionSearchWord, categoryId);
-                                                Thread.Sleep(searchScriptType.ThreadSleep);
+                                                processNextPage = false;
+                                                string error = ex.Message;
                                             }
-                                            break;
-                                    }
 
-                                }
-
-
-                                if(auctionSitePageLoadChecks.Count > 0)
-                                {
-                                    auctionSitePageLoadChecks = auctionSitePageLoadChecks.OrderBy(x => x.WordGrouping).ToList();
-                                    int countCheck = 0;
-                                    string innerHTMLVal = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
-                                    bool pageHasLoaded = false;
-                                    while ((!pageHasLoaded
-                                           )
-                                           && countCheck < 5)
-                                    { 
-                                        int currentGrouping = -1;
-                                    
-                                    bool currentGroupingPageLoaded = false;
-
-                                    foreach (var auctionSitePageLoadCheck in auctionSitePageLoadChecks)
-                                    {
-                                        if(auctionSitePageLoadCheck.WordGrouping != currentGrouping)
-                                        {
-                                            currentGrouping = auctionSitePageLoadCheck.WordGrouping;
-                                            if (currentGroupingPageLoaded)
-                                            {
-                                                pageHasLoaded = true;
-                                                break;
-                                            }
-                                            currentGroupingPageLoaded = innerHTMLVal.Contains(auctionSitePageLoadCheck.WordCheck);
-                                        }
-                                        else
-                                        {
-                                            currentGroupingPageLoaded = currentGroupingPageLoaded && innerHTMLVal.Contains(auctionSitePageLoadCheck.WordCheck);
-                                        }
-                                    }
-                                        if (currentGroupingPageLoaded)
-                                        {
-                                            pageHasLoaded = true;
                                         }
 
-                                            Thread.Sleep(2000);
-                                        innerHTMLVal = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
-                                        countCheck += 1;
-                                    }
-                                    if(countCheck >= 5)
-                                    {
-                                        countCheck += 1;
-                                    }
 
 
+
+                                    }
                                 }
-                                else
-                                {
-                                    Thread.Sleep(10000);
-                                }
-
-
-
-
-
-                                try
-                                {
-
-                                    
-                                    SiteAuctionItemDto[] siteResultsCurrentPull = await page.EvaluateFunctionAsync<SiteAuctionItemDto[]>(auctionSite.JsCode);
-                                    string hrefValue = await page.EvaluateFunctionAsync<string>("() => {return window.location.href;} ");
-
-                                    string innerHTML = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
-                                    
-                                    Console.WriteLine(hrefValue);
-                                    if (siteResultsCurrentPull == null || siteResultsCurrentPull.Length < 40 || totalSearchresults.Count > 500)
-                                    {
-                                        processNextPage = false;
-                                    }
-                                    pageRecords += 1;
-                                    //BOT_MAX_PAGE_NUMBER_EXCEEDED
-
-                                    string CheckinnerHTML = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
-                                    var missingRecords =  FindMissingRecords(totalSearchresults, siteResultsCurrentPull);
-                                    
-                                    if (missingRecords.Count == 0)
-                                    {
-                                        processNextPage = false;
-                                    }
-                                    else
-                                    {
-
-                                        totalSearchresults.AddRange(missingRecords);
-                                    }
-
-                                }
-                                catch (Exception ex)
-                                {
-                                    processNextPage = false;
-                                    string error = ex.Message;
-                                }
-
-                            }
-
-
-
-                            ProcessAuctionSiteItems(totalSearchresults, auctionSite, auctionSearchWord, _unitOfWork);
+                                break;
 
                         }
 
+                        counterBreak += totalSearchresults.Count;
+
+                        ProcessAuctionSiteItems(totalSearchresults, auctionSite, auctionSearchWord, _unitOfWork);
+
                         UpdateAuctionSearchSite(auctionSearchWord, auctionSite, _unitOfWork);
-                       
+
 
                     }
                     catch (Exception ex)
@@ -320,8 +356,146 @@ namespace sqs_processor.Processes
 
         }
 
+        private static List<SiteAuctionItemDto> ProcessWebClient(AuctionSite auctionSite, AuctionSearchWord auctionSearchWord){
 
-        
+            List<SiteAuctionItemDto> totalSearchresults = new List<SiteAuctionItemDto>();
+            
+            
+            bool processNextPage = true;
+            int pageRecords = 0;
+            while (processNextPage)
+            {
+                List<SiteAuctionItemDto> siteResultsCurrentPull = new List<SiteAuctionItemDto>();
+                string url = auctionSite.SearchURL.Replace("searchCallReplace", auctionSearchWord.SearchWord)
+                    .Replace("pageRecordsReplace", (auctionSite.StartPaging + pageRecords).ToString());
+                HtmlWeb web = new HtmlWeb();
+                HtmlDocument document = web.Load(url);
+                HtmlNode[] links= new HtmlNode[0];
+                if (document.DocumentNode.SelectNodes("//section") != null && document.DocumentNode.SelectNodes("//section").Count > 0)
+                {
+                    links = document.DocumentNode.SelectNodes("//section").ToArray();
+                }
+                else
+                {
+                    return totalSearchresults;
+                }
+
+                foreach (var link in links)
+                {
+                    SiteAuctionItemDto siteAuction = new SiteAuctionItemDto();
+                    HtmlNode[] datas = link.SelectNodes(".//div[contains(@class, 'row')]").ToArray();
+                    HtmlNode[] h1Title = link.SelectNodes(".//h1[contains(@class, 'title')]").ToArray();
+
+                    if (h1Title.Length > 0)
+                    {
+                        //InnerText = "\r\n                    \r\n                    Huge Lot Of 106 Brand New DVD Movies/Shows                    \r\n                "
+                        siteAuction.ProductName = h1Title[0].InnerText.Replace("                    ", "").Replace(Environment.NewLine, "").Trim();
+
+                        HtmlNode[] productLink = h1Title[0].SelectNodes(".//a").ToArray();
+                        if (productLink.Length > 0)
+                        {
+                            var productURl = productLink[0].GetAttributes().Where(x => x.Name == "href").FirstOrDefault();
+                            if (productURl != null)
+                            {
+                                siteAuction.ItemUrl = auctionSite.PrependProductSiteUrl + productURl.Value;
+                            }
+                        }
+                    }
+
+                    HtmlNode[] spanValues = link.SelectNodes(".//span").ToArray();
+                    //status-type
+
+
+                    foreach (var spanValue in spanValues)
+                    {
+                        var dataActionTime = spanValue.GetAttributes().Where(x => x.Name == "data-action-time").FirstOrDefault();
+
+                        if (dataActionTime != null)
+                        {
+                            //string dateEnd
+                            siteAuction.TimeLeft = dataActionTime.Value;
+                        }
+
+                        var classInfo = string.Join(" ", spanValue.GetClasses().ToArray());
+                        if (classInfo == "awe-rt-HideOnEnd awe-rt-AcceptedListingActionCount")
+                        {
+                            siteAuction.TotalBids = spanValue.InnerText;
+                        }
+                        if (classInfo == "NumberPart")
+                        {
+                            siteAuction.ItemPrice = spanValue.InnerText;
+                        }
+                        if (classInfo == "label label-primary status-type")
+                        {
+                            if (spanValue.InnerText == "Fixed Price")
+                            {
+                                siteAuction.BuyNow = "buynow";
+                            }
+                        }
+
+                        //awe-rt-HideOnEnd awe-rt-AcceptedListingActionCount
+                    }
+
+                    foreach (var data in datas)
+                    {
+                        HtmlNode[] imgDetail = data.SelectNodes(".//img").ToArray();
+                        siteAuction.ImageUrl = imgDetail[0].Attributes["src"].Value;
+                        HtmlNode[] nodeInfos = data.ChildNodes.ToArray();
+                    }
+                    siteResultsCurrentPull.Add(siteAuction);
+                }
+
+                if (siteResultsCurrentPull == null || siteResultsCurrentPull.Count < 40 || totalSearchresults.Count > 500)
+                {
+                    processNextPage = false;
+                }
+                pageRecords += 1;
+                //BOT_MAX_PAGE_NUMBER_EXCEEDED
+
+                //string CheckinnerHTML = await page.EvaluateFunctionAsync<string>("() => {return document.documentElement.innerHTML;} ");
+                var missingRecords = FindMissingRecords(totalSearchresults, siteResultsCurrentPull.ToArray());
+
+                if (missingRecords.Count == 0)
+                {
+                    processNextPage = false;
+                }
+                else
+                {
+
+                    totalSearchresults.AddRange(missingRecords);
+                }
+
+
+            }
+            return totalSearchresults;
+        }
+        private static bool CheckCurrentGroupingPageLoaded(List<AuctionPageLoadCheck> auctionSitePageLoadChecks,string innerHTMLVal)
+        {
+            bool currentGroupingPageLoaded = false;
+            int currentGrouping = -1;
+            foreach (var auctionSitePageLoadCheck in auctionSitePageLoadChecks)
+            {
+                if (auctionSitePageLoadCheck.WordGrouping != currentGrouping)
+                {
+                    currentGrouping = auctionSitePageLoadCheck.WordGrouping;
+                    if (currentGroupingPageLoaded)
+                    {
+                        currentGroupingPageLoaded = true;
+                        break;
+                    }
+                    currentGroupingPageLoaded = innerHTMLVal.Contains(auctionSitePageLoadCheck.WordCheck);
+                }
+                else
+                {
+                    currentGroupingPageLoaded = currentGroupingPageLoaded && innerHTMLVal.Contains(auctionSitePageLoadCheck.WordCheck);
+                }
+            }
+  
+            return currentGroupingPageLoaded;
+
+        }
+
+
         private static void UpdateAuctionSearchSite(AuctionSearchWord auctionSearchWord,AuctionSite auctionSite, IUnitOfWork _unitOfWork)
         {
             AuctionSearchSiteRunDto searchSiteRun = new AuctionSearchSiteRunDto();
@@ -365,7 +539,24 @@ namespace sqs_processor.Processes
                         decimal.TryParse(totalresult.ItemPrice.Replace("$", ""), out output);
                         auctionItem.ItemPrice = output;
 
-                        auctionItem.Url = totalresult.ItemUrl;
+
+                        if(totalresult.ItemShipping != null && totalresult.ItemShipping != "")
+                        {
+                            decimal.TryParse(totalresult.ItemShipping.Replace("$", ""), out output);
+                            auctionItem.ItemShipping = output;
+                        }
+                        else
+                        {
+
+                        }
+                        if(totalresult.BuyNow != null && totalresult.BuyNow == "buynow")
+                        {
+                           auctionItem.BuyNow = true;
+                        }
+                        else { auctionItem.BuyNow = false; }
+
+
+                            auctionItem.Url = totalresult.ItemUrl;
                         int totalBidsOutPut;
                         if (totalresult.TotalBids == null || totalresult.TotalBids == "")
                         {
@@ -375,13 +566,13 @@ namespace sqs_processor.Processes
 
                         auctionItem.TotalBids = totalBidsOutPut;
 
-                        auctionItem.ProductName = totalresult.ProductName;
+                        auctionItem.ProductName = totalresult.ProductName.Replace("{","").Replace("}","");
                         //totalresult.TimeLeft
 
-                        DateTime currendate = GetAuctionDate(totalresult.TimeLeft);
+                        DateTime ? currendate = GetAuctionDate(totalresult.TimeLeft);
 
                         auctionItem.AuctionEndDate = currendate;
-
+                        auctionItem.AuctionEndProcessed = false;
                         auctionItems.Add(auctionItem);
                     }
                     catch (Exception ex)
@@ -404,7 +595,7 @@ namespace sqs_processor.Processes
             }
 
         }
-        private static DateTime GetAuctionDate(string timeLeft)
+        private static DateTime? GetAuctionDate(string timeLeft)
         {
 
             DateTime currendate = DateTime.UtcNow;
@@ -412,7 +603,7 @@ namespace sqs_processor.Processes
 
             if (timeLeft == null || timeLeft == "")
             {
-                return currendate.AddYears(5);
+                return null;
             }
 
 

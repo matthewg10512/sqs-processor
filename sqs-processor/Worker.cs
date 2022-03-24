@@ -127,9 +127,12 @@ namespace sqs_processor
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
 
-                    // CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSiteDataRetrieval");
-
-
+                  //  CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSiteDataRetrieval");
+                    
+                    
+                  //CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSingleSiteEnd");
+                 //   CreateWorkerClass("sqs_processor.Processes.ProcessGiveAways");
+                    
                     //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
                     // CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurityProfiles");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
