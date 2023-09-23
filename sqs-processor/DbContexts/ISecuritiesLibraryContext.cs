@@ -32,6 +32,7 @@ namespace sqs_processor.DbContexts
         IDbSet<PriorPurchaseEstimate> PriorPurchaseEstimates { get; set; }
         IDbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
         IDbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
+        IDbSet<StockSplitHistory> StockSplitHistories { get; set; }
 
         IDbSet<StockScreenerAlertType> StockScreenerAlertTypes { get; set; }
         IDbSet<TradingHoliday> TradingHolidays { get; set; }
@@ -41,7 +42,7 @@ namespace sqs_processor.DbContexts
         IDbSet<StockScreener> StockScreeners { get; set; }
         IDbSet<ScreenerCriteria> ScreenerCriterias { get; set; }
 
-
+        IDbSet<SecurityAnalytic> SecurityAnalytics { get; set; }
 
         //  IDbSet<Earning> Earnings { get; set; }
         //List<HistoricalPrice> DapperHistoricalPrices { get; set; }

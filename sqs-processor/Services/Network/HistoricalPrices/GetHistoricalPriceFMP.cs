@@ -49,11 +49,17 @@ namespace sqs_processor.Services.Network.HistoricalPrices
 
 
             Historical[] historicalPriceFromApi;
-
+            //var details = JsonConvert.DeserializeObject<HistoricalPricesFromApi>(html).historical; 
+            List<HistoricalPriceforUpdateDto> historicalPrices = new List<HistoricalPriceforUpdateDto>();
+            if (html == "")
+            {
+                return historicalPrices;
+                    
+            }
             historicalPriceFromApi = JsonConvert.DeserializeObject<HistoricalPricesFromApi>(html).historical;
 
 
-            List<HistoricalPriceforUpdateDto> historicalPrices = new List<HistoricalPriceforUpdateDto>();
+            
             if(historicalPriceFromApi == null)
             {
                 return historicalPrices;
@@ -66,7 +72,8 @@ namespace sqs_processor.Services.Network.HistoricalPrices
                     || row.high == 0
                     || row.close == 0
                     || row.volume == 0
-
+                    || !(row.changePercent.HasValue)
+                    || !(row.changeOverTime.HasValue)
 
                     )
                 {

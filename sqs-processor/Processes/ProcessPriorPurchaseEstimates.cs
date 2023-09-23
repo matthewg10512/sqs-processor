@@ -1,10 +1,12 @@
-﻿using sqs_processor.Models;
+﻿using sqs_processor.Entities;
+using sqs_processor.Models;
 using sqs_processor.Services.Factories;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace sqs_processor.Processes
 {
@@ -22,22 +24,42 @@ namespace sqs_processor.Processes
         {
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+
+
+            Parallel.ForEach(
+          securities,
+new ParallelOptions { MaxDegreeOfParallelism = 8 },
+security => { ProcessPriorPurchaseEstimate(security); }
+
+);
+
+
+     
+            _unitOfWork.Dispose();
+        }
+
+
+        private void ProcessPriorPurchaseEstimate(Security security)
+        {
+
+            IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork(); ;
+        
+
+
             List<PriorPurchaseEstimateDto> priorPurchaseEstimates = new List<PriorPurchaseEstimateDto>();
             DateTime firstPurchaseDate = DateTime.Now;
             bool firstPurchase = false;
-            foreach (var security in securities)
-            {
                 firstPurchaseDate = DateTime.Now;
                 firstPurchase = false;
                 if (security.CurrentPrice < 5)
                 {
-                    continue;
+                    return;
                 }
-                if(security.Id != 251)
+                if (security.Id != 251)
                 {
                     //continue;
                 }
-                var historicalPrices = _unitOfWork.securityRepository.GetHistoricalPrices(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
+                var historicalPrices = unitOfWork.securityRepository.GetHistoricalPricesOpenHistoricDate(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
                 historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
                 decimal totalPrice = 0;
                 decimal totalShares = 0;
@@ -48,7 +70,8 @@ namespace sqs_processor.Processes
                     if (historicalPrice.HistoricDate.Month != monthSet)
                     {
                         monthSet = historicalPrice.HistoricDate.Month;
-                        if (!firstPurchase){
+                        if (!firstPurchase)
+                        {
                             firstPurchase = true;
                             firstPurchaseDate = historicalPrice.HistoricDate;
                         }
@@ -69,24 +92,18 @@ namespace sqs_processor.Processes
 
                 priorPurchaseEstimates.Add(securityPurchase);
 
-                if (priorPurchaseEstimates.Count > 500)
-                {
-                    _unitOfWork.securityRepository.UpsertPriorPurchaseEstimates(priorPurchaseEstimates);
+                    unitOfWork.securityRepository.UpsertPriorPurchaseEstimates(priorPurchaseEstimates);
                     priorPurchaseEstimates = new List<PriorPurchaseEstimateDto>();
-                    _unitOfWork.Dispose();
-                    _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-                }
+                    unitOfWork.Dispose();
 
-            }
 
-            if (priorPurchaseEstimates.Count > 0)
-            {
-                _unitOfWork.securityRepository.UpsertPriorPurchaseEstimates(priorPurchaseEstimates);
 
-            }
-            _unitOfWork.Dispose();
+
+
+
+
         }
 
-        
+
     }
 }

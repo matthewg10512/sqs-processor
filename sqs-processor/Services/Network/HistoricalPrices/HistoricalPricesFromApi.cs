@@ -25,9 +25,9 @@ namespace sqs_processor.Services.Network.HistoricalPrices
         public float volume { get; set; }
         public float unadjustedVolume { get; set; }
         public float change { get; set; }
-        public float changePercent { get; set; }
-        public float vwap { get; set; }
+        public float? changePercent { get; set; }
+        public float? vwap { get; set; }
         public string label { get; set; }
-        public float changeOverTime { get; set; }
+        public float? changeOverTime { get; set; }
     }
 }

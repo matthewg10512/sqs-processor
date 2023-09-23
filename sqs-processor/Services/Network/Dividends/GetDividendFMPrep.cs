@@ -45,6 +45,10 @@ namespace sqs_processor.Services.Network.Dividends
         {
             Historical[] dividendsFromApi;
             string symbol = "";
+            if (html == "")
+            {
+                return new List<DividendDto>();
+            }
             if (!futureSearch)
             {
                 DividendFromApi details = JsonConvert.DeserializeObject<DividendFromApi>(html);

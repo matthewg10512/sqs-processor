@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using sqs_processor.Services.Factories;
+using System.Threading.Tasks;
+using sqs_processor.Entities;
 
 namespace sqs_processor.Processes
 {
@@ -32,35 +34,19 @@ namespace sqs_processor.Processes
 
                 try
                 {
-                    
-                    var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
-                    List<DividendDto> dividends= new List<DividendDto>();
-                    foreach (var security in securities)
-                    {
-                        if (security.Id != 10152)
-                        {
-                         //   continue;
-                        }
-                        string html = _dividendService.GetStringHtml(security.Symbol, "");
-                         
-                        dividends.AddRange(_dividendService.TransformData(html, 0));
-                        if (dividends.Count > 1000)
-                        {
-                            dividends = _unitOfWork.dividendRepository.GetDividends(dividends);
-                            _unitOfWork.dividendRepository.UpdateDividends(dividends);
-                            dividends = new List<DividendDto>();
-                            _unitOfWork.Dispose();
-                            _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-                        }
-                    }
 
-                    if (dividends.Count > 0)
-                    {
-                        dividends = _unitOfWork.dividendRepository.GetDividends(dividends);
-                        _unitOfWork.dividendRepository.UpdateDividends(dividends);
-                    }
-                    
-                    
+                    var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+
+                    Parallel.ForEach(
+securities,
+new ParallelOptions { MaxDegreeOfParallelism = 3 },
+security => { ProcessDividend(security); }
+
+);
+
+
+
+
                 }
                 catch (Exception ex)
                 {
@@ -75,5 +61,16 @@ namespace sqs_processor.Processes
 
             _unitOfWork.Dispose();
         }
+        private void ProcessDividend(Security security)
+        {
+            List<DividendDto> dividends = new List<DividendDto>();
+            string html = _dividendService.GetStringHtml(security.Symbol, "");
+            IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
+            dividends.AddRange(_dividendService.TransformData(html, 0));
+
+            dividends = unitOfWork.dividendRepository.GetDividends(dividends);
+            unitOfWork.dividendRepository.UpdateDividends(dividends);
+        }
+
     }
 }

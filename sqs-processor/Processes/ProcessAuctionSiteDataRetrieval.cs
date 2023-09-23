@@ -195,6 +195,7 @@ namespace sqs_processor.Processes
                                         int pageRecords = 0;
                                         while (processNextPage)
                                         {
+                                            Thread.Sleep(20000);
                                             //alc
                                             string url = auctionSite.SearchURL.Replace(auctionSite.SearchWordReplace, auctionSearchWord.SearchWord)
                                                 .Replace(auctionSite.PageReplace, (auctionSite.StartPaging + pageRecords).ToString());
@@ -293,7 +294,7 @@ namespace sqs_processor.Processes
 
                                             try
                                             {
-
+                                                
 
                                                 SiteAuctionItemDto[] siteResultsCurrentPull = await page.EvaluateFunctionAsync<SiteAuctionItemDto[]>(auctionSite.JsCode);
                                                 string hrefValue = await page.EvaluateFunctionAsync<string>("() => {return window.location.href;} ");
@@ -365,6 +366,7 @@ namespace sqs_processor.Processes
             int pageRecords = 0;
             while (processNextPage)
             {
+                Thread.Sleep(20000);
                 List<SiteAuctionItemDto> siteResultsCurrentPull = new List<SiteAuctionItemDto>();
                 string url = auctionSite.SearchURL.Replace("searchCallReplace", auctionSearchWord.SearchWord)
                     .Replace("pageRecordsReplace", (auctionSite.StartPaging + pageRecords).ToString());

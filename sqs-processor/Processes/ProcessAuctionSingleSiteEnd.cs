@@ -49,6 +49,7 @@ namespace sqs_processor.Processes
         public static async Task GetAuctionItems(IUnitOfWork _unitOfWork)
         {
 
+            /*
             Process[] procs = Process.GetProcessesByName("chrome");
             Console.WriteLine("Process Count: " + procs.Count().ToString());
             foreach (var proc in procs)
@@ -56,7 +57,7 @@ namespace sqs_processor.Processes
                 
                 proc.Kill();
             }
-
+            */
             int counterBreakMax = 5000;
             int counterBreak = 0;
 
@@ -231,7 +232,7 @@ namespace sqs_processor.Processes
 
 
 
-                        if (auctionUpdateItems.Count > 39)
+                        if (auctionUpdateItems.Count > 9)
                         {
                             int partitionLoop = 0;
                             int partitionInterval = 100;
@@ -243,7 +244,7 @@ namespace sqs_processor.Processes
                             }
                             counterBreak += auctionUpdateItems.Count;
                             auctionUpdateItems = new List<AuctionItemDto>();
-                            break;
+                        
                         }
 
 

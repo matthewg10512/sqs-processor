@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using sqs_processor.Services.Factories;
+using System.Threading.Tasks;
+using sqs_processor.Entities;
 
 namespace sqs_processor.Processes
 {
@@ -20,7 +22,7 @@ namespace sqs_processor.Processes
             //_securityRepository = serviceFactory.GetSecuritiesRepository();
             _earningService = serviceFactory.GetEarningsService();
             _unitOfWorkFactory = serviceFactory.GetUnitOfWorkFactoryService();
-    }
+        }
 
         public void RunTask()
         {
@@ -34,27 +36,17 @@ namespace sqs_processor.Processes
                 try
                 {
                     var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
-                    List<EarningDto> earnings = new List<EarningDto>();
-                    foreach (var security in securities)
-                    {
-                        _earningService.SetURL("");
-                        string html = _earningService.GetStringHtml(security.Symbol, "");
-                        earnings.AddRange(_earningService.TransformData(html, security.Id));
-                        if (earnings.Count > 1000)
-                        {
-                            earnings = _unitOfWork.securityRepository.GetEarnings(earnings);
-                            _unitOfWork.securityRepository.UpdateEarnings(earnings);
-                            _unitOfWork.Dispose();
-                            _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-                            earnings = new List<EarningDto>();
-                        }
-                    }
-                    if (earnings.Count > 0)
-                    {
-                        earnings = _unitOfWork.securityRepository.GetEarnings(earnings);
-                        _unitOfWork.securityRepository.UpdateEarnings(earnings);
 
-                    }
+
+
+                    Parallel.ForEach(
+     securities,
+new ParallelOptions { MaxDegreeOfParallelism = 3 },
+security => { ProcessEarning(security); }
+
+);
+
+
                 }
                 catch (Exception ex)
                 {
@@ -68,6 +60,24 @@ namespace sqs_processor.Processes
             }
 
             _unitOfWork.Dispose();
+        }
+        private void ProcessEarning(Security security)
+        {
+            IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
+            List<EarningDto> earnings = new List<EarningDto>();
+            if (security.Id < 496)
+            {
+                // continue;
+            }
+            _earningService.SetURL("");
+            string html = _earningService.GetStringHtml(security.Symbol, "");
+            earnings.AddRange(_earningService.TransformData(html, security.Id));
+
+            earnings = unitOfWork.securityRepository.GetEarnings(earnings);
+            unitOfWork.securityRepository.UpdateEarnings(earnings);
+            unitOfWork.Dispose();
+
+
         }
     }
 }

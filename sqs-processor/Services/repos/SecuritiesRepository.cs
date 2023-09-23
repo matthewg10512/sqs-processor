@@ -483,9 +483,40 @@ namespace sqs_processor.Services.repos
             return collection.ToList();
         }
 
+        public List<HistoricalPriceCloseHistoricDateDto> GetHistoricalPricesCloseHistoricDate(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
+        {
+            var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
 
 
-        public List<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
+            collection = collection.Where(x => x.SecurityId == securityId);
+            if (historicalPriceResourceParameters.HistoricDateLow.HasValue && historicalPriceResourceParameters.HistoricDateHigh.HasValue)
+            {
+                collection = collection.Where(x => x.HistoricDate >= historicalPriceResourceParameters.HistoricDateLow && x.HistoricDate <= historicalPriceResourceParameters.HistoricDateHigh);
+            }
+            if (historicalPriceResourceParameters.openLow.HasValue)
+            {
+                collection = collection.Where(x => x.Open > historicalPriceResourceParameters.openLow);
+            }
+            return collection.Select(x => new HistoricalPriceCloseHistoricDateDto { HistoricDate = x.HistoricDate, Close = x.Close , SecurityId = x.SecurityId }).ToList();
+        }
+        public List<HistoricalPriceOpenHistoricDateDto> GetHistoricalPricesOpenHistoricDate(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
+        {
+            var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
+
+
+            collection = collection.Where(x => x.SecurityId == securityId);
+            if (historicalPriceResourceParameters.HistoricDateLow.HasValue && historicalPriceResourceParameters.HistoricDateHigh.HasValue)
+            {
+                collection = collection.Where(x => x.HistoricDate >= historicalPriceResourceParameters.HistoricDateLow && x.HistoricDate <= historicalPriceResourceParameters.HistoricDateHigh);
+            }
+            if (historicalPriceResourceParameters.openLow.HasValue)
+            {
+                collection = collection.Where(x => x.Open > historicalPriceResourceParameters.openLow);
+            }
+            return collection.Select(x=> new HistoricalPriceOpenHistoricDateDto {HistoricDate= x.HistoricDate, Open = x.Open }).ToList();
+        }
+
+            public List<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
         {
             var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
 
@@ -502,7 +533,14 @@ namespace sqs_processor.Services.repos
             return collection.ToList();
         }
 
-        public HistoricalPrice GetHistoricalPricesRange(int securityId)
+        public HistoricalPrice GetFirstHistoricalPrice(int securityId)
+        {
+            var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
+
+
+            return collection.Where(x => x.SecurityId == securityId).Select(x => new HistoricalPrice { Id = x.Id, HistoricDate = x.HistoricDate }).OrderBy(x => x.HistoricDate).FirstOrDefault();
+        }
+        public HistoricalPrice GetLastHistoricalPrice(int securityId)
         {
             var collection = _context.HistoricalPrices as IQueryable<HistoricalPrice>;
 
@@ -1015,7 +1053,10 @@ namespace sqs_processor.Services.repos
             return _context.StockScreenerAlertTypes.ToList();
         }
 
-       
+        public void UpdatePercentageChangeHistoricPrice(int securityId) {
+
+            _context.Database.ExecuteSqlRaw("CALL UpdateHistoricPercentChange(" + securityId.ToString() + ")");
+        }
 
         public bool IsMarketClosed(DateTime currentDate)
         {
@@ -1974,6 +2015,19 @@ namespace sqs_processor.Services.repos
 
         }
 
+        public IEnumerable<StockSplitHistory> GetStockSplitHistories(int securityId, StockSplitHistoriesResourceParameters stockSplitHistoryResourceParameters)
+        {
+            var collection = _context.StockSplitHistories as IQueryable<StockSplitHistory>;
+
+
+            collection = collection.Where(x => x.SecurityId == securityId);
+
+            if (stockSplitHistoryResourceParameters.HistoricDateLow.HasValue && stockSplitHistoryResourceParameters.HistoricDateHigh.HasValue)
+            {
+                collection = collection.Where(x => x.SplitDate >= stockSplitHistoryResourceParameters.HistoricDateLow && x.SplitDate <= stockSplitHistoryResourceParameters.HistoricDateHigh);
+            }
+            return collection.ToList();
+        }
 
         private List<CurrentPeakRange> GetCurrentCurrentPeakRanges(List<CurrentPeakRange> currentPeakRangesInDb, List<CurrentPeakRangeDto> currentPeakRanges)
         {
@@ -2170,7 +2224,187 @@ namespace sqs_processor.Services.repos
 
         }
 
-        
+        private List<SecurityAnalytic> GetCurrentSecurityAnalyticsRecords(List<SecurityAnalyticDto> securityAnalytics)
+        {
+            var stockSecurityId = securityAnalytics.Select(x => x.SecurityId).ToList();
+            var securitiesInTable = _context.SecurityAnalytics.Where(x => stockSecurityId.Contains(x.SecurityId)).ToList();
+            return securitiesInTable;
+        }
+
+        private List<StockSplitHistory> GetCurrentStockSplitHistoryRecords(List<StockSplitHistoryDto> stockSplits)
+        {
+            var stockSecurityId = stockSplits.Select(x => x.SecurityId).ToList();
+            var stockSplitTable = _context.StockSplitHistories.Where(x => stockSecurityId.Contains(x.SecurityId)).ToList();
+            return stockSplitTable;
+        }
+
+
+        public void UpsertSecurityAnalytics(List<SecurityAnalyticDto> securityAnalytics)
+        {
+            List<SecurityAnalytic> securityAnalyticTable = GetCurrentSecurityAnalyticsRecords(securityAnalytics);
+
+
+            var securityAnalyticRecords = _mapper.Map<List<SecurityAnalytic>>(securityAnalytics).ToList();
+
+
+
+            var recordsMatch = securityAnalyticRecords.Join(securityAnalyticTable, x => x.SecurityId,
+         y => y.SecurityId, (query1, query2) => new { query1, query2 })
+
+                .Select(x => x.query1
+
+                );
+
+
+            var newRecords = securityAnalyticRecords.Except(recordsMatch).ToList();
+
+
+            if (newRecords.Count > 0)
+            {
+                _utility.AddRecords(newRecords, _context);
+            }
+
+
+            var existingRecords = securityAnalyticRecords.Join(securityAnalyticTable, x => x.SecurityId,
+       y => y.SecurityId, (query1, query2) => new { query1, query2 })
+
+              .Select(x => new SecurityAnalytic
+              {
+                  Id = x.query2.Id,
+                  SecurityId = x.query1.SecurityId,
+                  MovingAverageDay10 = x.query1.MovingAverageDay10,
+                  MovingAverageDay20 = x.query1.MovingAverageDay20,
+                  MovingAverageDay30 = x.query1.MovingAverageDay30,
+                  MovingAverageDay50 = x.query1.MovingAverageDay50,
+                  MovingAverageDay100 = x.query1.MovingAverageDay100,
+                  MovingAverageDay200 = x.query1.MovingAverageDay200,
+                  MovingAverageYear1 = x.query1.MovingAverageYear1,
+                  MovingAverageYear2 = x.query1.MovingAverageYear2,
+                  MaxPriceDay10 = x.query1.MaxPriceDay10,
+
+                  MaxPriceDay20 = x.query1.MaxPriceDay20,
+                  MaxPriceDay30 = x.query1.MaxPriceDay30,
+                  MaxPriceDay50 = x.query1.MaxPriceDay50,
+                  MaxPriceDay100 = x.query1.MaxPriceDay100,
+                  MaxPriceDay200 = x.query1.MaxPriceDay200,
+                  MaxPriceYear1 = x.query1.MaxPriceYear1,
+                  MaxPriceYear2 = x.query1.MaxPriceYear2,
+
+                  MinPriceDay10 = x.query1.MinPriceDay10,
+                  MinPriceDay20 = x.query1.MinPriceDay20,
+                  MinPriceDay30 = x.query1.MinPriceDay30,
+                  MinPriceDay50 = x.query1.MinPriceDay50,
+                  MinPriceDay100 = x.query1.MinPriceDay100,
+                  MinPriceDay200 = x.query1.MinPriceDay200,
+                  MinPriceYear1 = x.query1.MinPriceYear1,
+                  MinPriceYear2 = x.query1.MinPriceYear2,
+                  LastModified = x.query1.LastModified,
+                  LatestDateChecked = x.query1.LatestDateChecked,
+
+
+              }).ToList();
+
+
+            var updatedAlready = existingRecords.Join(securityAnalyticTable, x => x.Id,
+              y => y.Id, (query1, query2) => new { query1, query2 }).Where(x =>
+              
+              
+               x.query1.MovingAverageDay10 == x.query2.MovingAverageDay10 && 
+                  x.query1.MovingAverageDay20 == x.query2.MovingAverageDay20 && 
+                  x.query1.MovingAverageDay30 == x.query2.MovingAverageDay30 && 
+                  x.query1.MovingAverageDay50 == x.query2.MovingAverageDay50 && 
+                  x.query1.MovingAverageDay100 == x.query2.MovingAverageDay100 && 
+                  x.query1.MovingAverageDay200 == x.query2.MovingAverageDay200 && 
+                  x.query1.MovingAverageYear1 == x.query2.MovingAverageYear1 && 
+                  x.query1.MovingAverageYear2 == x.query2.MovingAverageYear2 && 
+                  x.query1.MaxPriceDay10 == x.query2.MaxPriceDay10 && 
+
+                  x.query1.MaxPriceDay20 == x.query2.MaxPriceDay20 && 
+                  x.query1.MaxPriceDay30 == x.query2.MaxPriceDay30 && 
+                  x.query1.MaxPriceDay50 == x.query2.MaxPriceDay50 && 
+                  x.query1.MaxPriceDay100 == x.query2.MaxPriceDay100 && 
+                  x.query1.MaxPriceDay200 == x.query2.MaxPriceDay200 && 
+                  x.query1.MaxPriceYear1 == x.query2.MaxPriceYear1 && 
+                  x.query1.MaxPriceYear2 == x.query2.MaxPriceYear2 && 
+
+                  x.query1.MinPriceDay10 == x.query2.MinPriceDay10 && 
+                  x.query1.MinPriceDay20 == x.query2.MinPriceDay20 && 
+                  x.query1.MinPriceDay30 == x.query2.MinPriceDay30 && 
+                  x.query1.MinPriceDay50 == x.query2.MinPriceDay50 && 
+                  x.query1.MinPriceDay100 == x.query2.MinPriceDay100 && 
+                  x.query1.MinPriceDay200 == x.query2.MinPriceDay200 && 
+                  x.query1.MinPriceYear1 == x.query2.MinPriceYear1 && 
+                  x.query1.MinPriceYear2 == x.query2.MinPriceYear2 
+
+              ).Select(x => x.query1).ToList();
+
+
+            var updatedbSecurities = existingRecords.Except(updatedAlready).ToList();
+
+
+            _utility.UpdateRecords(updatedbSecurities, _context);
+
+
+        }
+        public void UpsertStockSplitHistory(List<StockSplitHistoryDto> stockSplits)
+        {
+
+            List<StockSplitHistory> stockSplitTable = GetCurrentStockSplitHistoryRecords(stockSplits);
+
+          
+            var stockSplitRecords = _mapper.Map<List<StockSplitHistory>>(stockSplits).ToList();
+
+
+
+            var recordsMatch = stockSplitRecords.Join(stockSplitTable, x => x.SecurityId,
+         y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(x=> x.query1.SplitDate == x.query2.SplitDate)
+                
+                .Select(x => x.query1
+
+                );
+
+
+            var newRecords = stockSplitRecords.Except(recordsMatch).ToList();
+            
+
+            if (newRecords.Count > 0)
+            {
+                _utility.AddRecords(newRecords, _context);
+            }
+
+
+            var existingRecords = stockSplitRecords.Join(stockSplitTable, x => x.SecurityId,
+       y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(x => x.query1.SplitDate == x.query2.SplitDate)
+
+              .Select(x => new StockSplitHistory
+              {
+                  Id = x.query2.Id,
+                  SecurityId = x.query1.SecurityId,
+                  SplitDate = x.query1.SplitDate,
+                  SplitAmount = x.query1.SplitAmount,
+                  ReverseSplitAmount = x.query1.ReverseSplitAmount,
+
+              }).ToList();
+
+
+            var updatedAlready = existingRecords.Join(stockSplitTable, x => x.Id,
+              y => y.Id, (query1, query2) => new { query1, query2 }).Where(o =>
+              o.query1.SplitDate == o.query2.SplitDate
+              && o.query1.SplitAmount == o.query2.SplitAmount
+              && o.query1.ReverseSplitAmount == o.query2.ReverseSplitAmount
+
+              ).Select(x => x.query1).ToList();
+
+
+            var updatedbSecurities = existingRecords.Except(updatedAlready).ToList();
+
+
+            _utility.UpdateRecords(updatedbSecurities, _context);
+
+            
+            
+
+        }
     }
 }
 

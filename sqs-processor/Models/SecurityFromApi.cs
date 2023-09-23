@@ -27,6 +27,6 @@ namespace sqs_processor.Models
         public float? pe { get; set; }
         public DateTime? earningsAnnouncement { get; set; }
         public long? sharesOutstanding { get; set; }
-        public int timestamp { get; set; }
+        public int? timestamp { get; set; }
     }
 }

@@ -39,6 +39,7 @@ namespace sqs_processor.DbContexts
         public DbSet<SecurityAlertType> SecurityAlertTypes { get; set; }
         public DbSet<PriorPurchaseEstimate> PriorPurchaseEstimates { get; set; }
 
+        public DbSet <StockSplitHistory> StockSplitHistories { get; set; }
         public DbSet<PeakRangeDetail> PeakRangeDetails { get; set; }
         public DbSet<SecurityAlert> SecurityAlerts { get; set; }
 
@@ -54,7 +55,7 @@ namespace sqs_processor.DbContexts
         public DbSet<AuctionSiteCategoryWord> AuctionSiteCategoryWords { get; set; }
 
         public DbSet<AuctionPageLoadCheck> AuctionPageLoadChecks { get; set; }
-
+        public DbSet<SecurityAnalytic> SecurityAnalytics { get; set; }
         public void Save()
         {
             throw new NotImplementedException();

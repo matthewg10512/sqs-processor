@@ -6,6 +6,7 @@ using sqs_processor.Services.Network.Dividends;
 using sqs_processor.Services.Network.Earnings;
 using sqs_processor.Services.Network.HistoricalPrices;
 using sqs_processor.Services.Network.Profile;
+using sqs_processor.Services.Network.StockSplits;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,8 @@ namespace sqs_processor.Services.Factories
         private readonly IContextOptions _contextOptions;
         private readonly IUnitofWorkFactory _unitOfWorkFactoryService;
         private readonly IGetSecurityProfile _securityProfileService;
-        
+
+        private readonly IGetStockSplitHistory _stockSplitService;
 
         public ServiceFactory(ISecuritiesRepository securityRepository,IGetSecurityService securityService,
         IGetEarningsService earningService,
@@ -36,6 +38,7 @@ namespace sqs_processor.Services.Factories
             IMapper mapper,
            IContextOptions contextOptions, IUnitofWorkFactory
             unitOfWorkFactoryService, IGetSecurityProfile securityProfileService
+            , IGetStockSplitHistory stockSplitHistory
            )
         {
             _securityRepository = securityRepository;
@@ -48,6 +51,7 @@ namespace sqs_processor.Services.Factories
             _contextOptions = contextOptions;
             _unitOfWorkFactoryService = unitOfWorkFactoryService;
             _securityProfileService = securityProfileService;
+            _stockSplitService = stockSplitHistory;
         }
 
         public ISecuritiesRepository GetSecuritiesRepository()
@@ -99,7 +103,10 @@ namespace sqs_processor.Services.Factories
         {
             return _unitOfWorkFactoryService;
         }
-        
 
+        public IGetStockSplitHistory GetStockSplitHistoryService()
+        {
+            return _stockSplitService;
+        }
     }
 }

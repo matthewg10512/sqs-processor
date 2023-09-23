@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace sqs_processor.Processes
 {
@@ -59,45 +60,62 @@ namespace sqs_processor.Processes
 
 
 			var securities = _unitOfWork.securityRepository.GetSecurities(secResourceParam);
-			List<SecurityPercentageStatisticDto> securityPercentageStatistics = new List<SecurityPercentageStatisticDto>();
 			var currentSecurityPercentage = _unitOfWork.securityRepository.GetCurrentSecurityPercentage();
 			securities = securities.Except(currentSecurityPercentage).ToList();
 
-			foreach (var security in securities)
-            {
-                if (security.Id != 251)
-                {
+
+
+
+			Parallel.ForEach(
+					  securities,
+  new ParallelOptions { MaxDegreeOfParallelism = 8 },
+		   security => { ProcessSecurityPercentageStatistic(security); }
+
+		   );
+
+
+
+				_unitOfWork.Dispose();
+		}
+
+		private void ProcessSecurityPercentageStatistic(Entities.Security security)
+		{
+			IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork(); ;
+		List<SecurityPercentageStatisticDto> securityPercentageStatistics = new List<SecurityPercentageStatisticDto>();
+			
+				if (security.Id != 828)
+				{
 					//683,2565,3162, 14974
-                  //  continue;
-                }
+					//continue;
+				}
 				try
 				{
 					HistoricalPricesResourceParameters hisParams = new HistoricalPricesResourceParameters();
 					hisParams.HistoricDateHigh = DateTime.Now.AddDays(2);
 					hisParams.HistoricDateLow = DateTime.Now.AddDays(-730);
 					hisParams.openLow = 0;
-					var historicalPrices = _unitOfWork.securityRepository.GetHistoricalPrices(security.Id, hisParams);
+					var historicalPrices = unitOfWork.securityRepository.GetHistoricalPrices(security.Id, hisParams);
 					if (historicalPrices.Count == 0)
 					{
 						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-						continue;
+						
 					}
 					historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
 					decimal averagePercentDrop = GetAverageDrop(historicalPrices);
-					if(averagePercentDrop == 0)
-                    {
-						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-						continue;
-					}
-					int dropCount = GetDropCount(historicalPrices, averagePercentDrop);
-					if (dropCount == 0)
+					if (averagePercentDrop == 0 && securityPercentageStatistics.Count == 0 )
 					{
 						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-						continue;
+					
+					}
+					int dropCount = GetDropCount(historicalPrices, averagePercentDrop);
+					if (dropCount == 0 && securityPercentageStatistics.Count == 0)
+					{
+						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
+					
 					}
 					//decimal averageDrop = GetAverageCount(historicalPrices, averagePercentDrop);
 
-					
+
 					decimal totalPercentSum = GetTotalPercentSum(historicalPrices);
 
 					decimal highLowRangeAverage = GetLowHighRangeAverage(historicalPrices);
@@ -105,14 +123,14 @@ namespace sqs_processor.Processes
 
 
 
-					
-					List<SecurityPercentages> securityPercentrages =  GetPercentages(historicalPrices, averagePercentDrop, dropCount);
+
+					List<SecurityPercentages> securityPercentrages = GetPercentages(historicalPrices, averagePercentDrop, dropCount);
 
 
-                    if (securityPercentrages.Count == 0)
-                    {
+					if (securityPercentrages.Count == 0 && securityPercentageStatistics.Count == 0)
+					{
 						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-						continue;
+					
 					}
 
 					decimal lowPercentageAverage = GetLowPercentageAverage(historicalPrices, averagePercentDrop);
@@ -134,44 +152,34 @@ namespace sqs_processor.Processes
 					securityPercentageStatistic.Percent15 = Math.Round(percentDetails15, 2);
 					securityPercentageStatistic.DateCreated = DateTime.Now;
 					securityPercentageStatistic.DateModified = DateTime.Now;
-					securityPercentageStatistic.totalPercentSum = Math.Round(totalPercentSum,2);
-					securityPercentageStatistic.highLowRangeAverage = Math.Round(highLowRangeAverage,2);
+					securityPercentageStatistic.totalPercentSum = Math.Round(totalPercentSum, 2);
+					securityPercentageStatistic.highLowRangeAverage = Math.Round(highLowRangeAverage, 2);
 					securityPercentageStatistic.belowAverageCount = dropCount;
 					securityPercentageStatistic.AvgDropLowAvg = lowPercentageAverage;
 					securityPercentageStatistic.AvgDropHighLowRangeAvg = averageDrophighLowRangePercentageAverage;
-					
 
 
+				if (securityPercentageStatistics.Count == 0)
+				{
 					securityPercentageStatistics.Add(securityPercentageStatistic);
-					if (securityPercentageStatistics.Count > 500)
-					{
-
-						_unitOfWork.securityRepository.UpsertSecurityPercentageStatistics(securityPercentageStatistics);
-
-						_unitOfWork.Dispose();
-						_unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-						securityPercentageStatistics = new List<SecurityPercentageStatisticDto>();
-
-					}
 				}
-				catch(Exception ex)
-                {
+						unitOfWork.securityRepository.UpsertSecurityPercentageStatistics(securityPercentageStatistics);
 
-                }
-			}
+						unitOfWork.Dispose();
 
-			if (securityPercentageStatistics.Count > 0)
-            {
-				_unitOfWork.securityRepository.UpsertSecurityPercentageStatistics(securityPercentageStatistics);
-			}
-				_unitOfWork.Dispose();
+				}
+				catch (Exception ex)
+				{
+
+				}
+			
+
 		}
-
-
-		private decimal GetAverageDropHighLowRangePercentageAverage(List<HistoricalPrice> historicalPrices, decimal averagePercentDrop)
+			private decimal GetAverageDropHighLowRangePercentageAverage(List<HistoricalPrice> historicalPrices, decimal averagePercentDrop)
 		{
 			int securityId = historicalPrices[0].SecurityId;
-			var info = historicalPrices
+			var historicalPriceList = historicalPrices.Where(x => x.Close != 0 && x.Open != 0 && x.Low != 0 && x.High !=0).ToList();
+			var info = historicalPriceList
 				//((x.Low - x.Close) / x.Close) * 100
 				//.Where(x => x.PercentChange < averagePercentDrop * (decimal)1.5)
 				.Where(x => ((x.Low - x.Open) / x.Open) * 100 < averagePercentDrop * (decimal)1.5)
@@ -179,7 +187,7 @@ namespace sqs_processor.Processes
 				.Select(g => new { Count = g.Count(), Value = g.Key, Id = securityId }).ToList().OrderBy(x => x.Value.ID).ToList();
 
 
-			var highLowRange = info.Join(historicalPrices.Where(x => x.PercentChange < averagePercentDrop * (decimal)1.5), x => x.Id, y => y.SecurityId, (invProj, invProjSec) => new { invProj, invProjSec })
+			var highLowRange = info.Join(historicalPriceList.Where(x => x.PercentChange < averagePercentDrop * (decimal)1.5), x => x.Id, y => y.SecurityId, (invProj, invProjSec) => new { invProj, invProjSec })
 			.Where(x => x.invProj.Value.ID == decimal.Round((decimal)(((x.invProjSec.Low - x.invProjSec.Close) / x.invProjSec.Close) * 100), 1)).Select
 			(x => new {
 				SecurityId = x.invProj.Id,
@@ -197,13 +205,14 @@ namespace sqs_processor.Processes
 			private decimal GetLowPercentageAverage(List<HistoricalPrice> historicalPrices, decimal averagePercentDrop)
 		{
 			int securityId = historicalPrices[0].SecurityId;
-			var info =  historicalPrices
+			var historicalPriceList = historicalPrices.Where(x => x.Close != 0 && x.Open != 0 && x.Low != 0 && x.High !=0).ToList();
+			var info = historicalPriceList
 				//.Where(x => x.PercentChange < averagePercentDrop * (decimal)1.5)
 				.Where(x => ((x.Low - x.Open) / x.Open) * 100 < averagePercentDrop * (decimal)1.5)
 				.GroupBy(x => new { ID = decimal.Round((decimal)(((x.Low - x.Close) / x.Close) * 100), 1) })
 				.Select(g => new { Count = g.Count(), Value = g.Key, Id = securityId }).ToList().OrderBy(x=>x.Value.ID).ToList();
 
-			var detail = info.Join(historicalPrices.Where(x => x.PercentChange < averagePercentDrop * (decimal)1.5), x => x.Id, y => y.SecurityId, (invProj, invProjSec) => new { invProj, invProjSec })
+			var detail = info.Join(historicalPriceList.Where(x => x.PercentChange < averagePercentDrop * (decimal)1.5), x => x.Id, y => y.SecurityId, (invProj, invProjSec) => new { invProj, invProjSec })
 				.Where(x => x.invProj.Value.ID == decimal.Round((decimal)(((x.invProjSec.Low - x.invProjSec.Close) / x.invProjSec.Close) * 100), 1)).Select
 				(x=> new {
 					SecurityId = x.invProj.Id,
@@ -220,7 +229,8 @@ namespace sqs_processor.Processes
 
 		private List<SecurityPercentages> GetPercentages(List<HistoricalPrice> historicalPrices, decimal averagePercentDrop, int dropCount)
         {
-			var securityPerDetails = historicalPrices
+			var historicalPriceList = historicalPrices.Where(x => x.Close != 0 && x.Open != 0 && x.Low != 0 && x.High !=0).ToList();
+			var securityPerDetails = historicalPriceList
 							.Where(x =>
 							//Math.Abs(x.PercentChange.Value - Math.Round(((x.Low.Value - x.Open.Value) / x.Open.Value) * 100, 1)) < (decimal?).5
 							x.PercentChange < averagePercentDrop && x.Low.Value < x.Close * (decimal).996
@@ -304,7 +314,8 @@ namespace sqs_processor.Processes
 		
 		private decimal GetLowHighRangeAverage(List<HistoricalPrice> historicalPrices)
 		{
-			return historicalPrices
+			var historicalPriceList = historicalPrices.Where(x => x.Close != 0 && x.Open != 0 && x.Low != 0 && x.High !=0).ToList();
+			return historicalPriceList
 				.Where(x => x.Low > 0)
 				.GroupBy(x => new { ID = x.SecurityId })
 				.Select(g => new { Average = g.Average(p => ((p.High - p.Low)/p.Low)*100) })
@@ -349,8 +360,8 @@ namespace sqs_processor.Processes
 
 
 
-
-			return historicalPrices
+			var historicalPriceList = historicalPrices.Where(x => x.Close != 0 && x.Open != 0 && x.Low != 0 && x.High != 0).ToList();
+			return historicalPriceList
 				.Where(x =>
 				//Math.Abs(x.PercentChange.Value - Math.Round(((x.Low.Value - x.Open.Value) / x.Open.Value) * 100, 1)) < (decimal?).5
 				x.PercentChange < averagePercentDrop && x.Low.Value < x.Close * (decimal).996

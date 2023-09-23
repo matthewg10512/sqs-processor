@@ -45,9 +45,14 @@ namespace sqs_processor.Services.Network.Earnings
 
         public List<EarningDto> TransformData(string html, int securityId)
         {
+            List<EarningDto> earnings = new List<EarningDto>();
+            if (html == "")
+            {
+                return earnings;
+            }
             var earningsFromApi = JsonConvert.DeserializeObject<List<EarningFromApi>>(html);
 
-            List<EarningDto> earnings = new List<EarningDto>();
+            
 
             foreach (var row in earningsFromApi)
             {
@@ -64,8 +69,8 @@ namespace sqs_processor.Services.Network.Earnings
                     EPSEstimate = Decimal.Round((decimal)(row.epsEstimated.HasValue ? row.epsEstimated : 0), 2),
                     ReportedEPS = Decimal.Round((decimal)(row.eps.HasValue ? row.eps : 0), 2),
                     ReportTime = row.time,
-                    ActualRevenue = Decimal.Round((decimal)row.revenue, 2),
-                    RevenueEstimate = Decimal.Round((decimal)(row.revenueEstimated.HasValue ? row.revenue:0), 2),
+                    ActualRevenue = Decimal.Round((decimal)(row.revenue.HasValue ? row.revenue : 0), 2),
+                    RevenueEstimate = Decimal.Round((decimal)(row.revenueEstimated.HasValue ? row.revenueEstimated: 0), 2),
                     SecurityId = securityId,
                     symbol = row.symbol
 

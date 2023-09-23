@@ -47,14 +47,21 @@ namespace sqs_processor.Services.repos
         public void UpdateEarnings(List<EarningDto> earnings, Security security);
 
 
+        public void UpsertSecurityAnalytics(List<SecurityAnalyticDto> securityAnalytics);
+
+        public void UpsertStockSplitHistory(List<StockSplitHistoryDto> stockSplits);
+        
         public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices);
         public List<Security> GetCurrentPeakRanges();
         public List<HistoricalPrice> GetHistoricalPrices(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters);
-        public HistoricalPrice GetHistoricalPricesRange(int securityId);
+        public HistoricalPrice GetLastHistoricalPrice(int securityId);
+        public HistoricalPrice GetFirstHistoricalPrice(int securityId);
+        public void UpdatePercentageChangeHistoricPrice(int securityId);
 
         public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges);
         public void UpsertPeakRangeDetails(List<PeakRangeDetailDto> peakRangeDetails);
-
+        public List<HistoricalPriceCloseHistoricDateDto> GetHistoricalPricesCloseHistoricDate(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters);
+        public List<HistoricalPriceOpenHistoricDateDto> GetHistoricalPricesOpenHistoricDate(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters);
         public void UpsertPriorPurchaseEstimates(List<PriorPurchaseEstimateDto> priorPurchaseEstimates);
 
         public void UpdateSecurities(List<SecurityForUpdateDto> securities);
@@ -90,6 +97,8 @@ namespace sqs_processor.Services.repos
 
         public List<StockScreener> GetStockScreeners();
         public StockScreenerSearchResourceParameters GetStockScreenerSearchDetails(int stockScreenId);
+        public IEnumerable<StockSplitHistory> GetStockSplitHistories(int securityId, StockSplitHistoriesResourceParameters stockSplitHistoryResourceParameters);
+
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType);
         public List<Security> GetCurrentSecurityPercentage();

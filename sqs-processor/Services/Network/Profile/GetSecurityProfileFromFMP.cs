@@ -26,12 +26,17 @@ namespace sqs_processor.Services.Network.Profile
         public List<SecurityForUpdateDto> TransformData(string html, string symbol, string exchange)
         {
             SecurityProfileFromApi[] securitiesFromApi;
+            List<SecurityForUpdateDto> securities = new List<SecurityForUpdateDto>();
 
+            if (html == "")
+            {
+                return securities;
+            }
             securitiesFromApi = JsonConvert.DeserializeObject<SecurityProfileFromApi[]>(html);
 
 
 
-            List<SecurityForUpdateDto> securities = new List<SecurityForUpdateDto>();
+            
             foreach (var row in securitiesFromApi)
             {
                 SecurityForUpdateDto security = new SecurityForUpdateDto()
