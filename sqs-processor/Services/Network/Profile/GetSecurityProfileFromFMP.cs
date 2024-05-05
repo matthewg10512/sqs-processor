@@ -45,7 +45,9 @@ namespace sqs_processor.Services.Network.Profile
                     Description = row.description,
                     IPODate = row.ipoDate.HasValue ? row.ipoDate.Value : DateTime.Now,
                     SecurityType = exchange,
-                    LastModified = DateTime.Now
+                    LastModified = DateTime.Now,
+                    IsEtf = row.isEtf
+                    
 
                 };
                 securities.Add(security);

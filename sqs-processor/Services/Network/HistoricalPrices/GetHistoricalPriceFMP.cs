@@ -23,7 +23,7 @@ namespace sqs_processor.Services.Network.HistoricalPrices
             _apiKey = apiKey;
         }
 
-        public string GetStringHtml(Security security)
+        public string GetStringHtml(SecurityIdSymbolDto security)
         {
             /*
             DateTime setDate = DateTime.Now;

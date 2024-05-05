@@ -112,7 +112,10 @@ namespace sqs_processor.Services.Utility
 
         public void AddRecords(IEnumerable<object> records, SecuritiesLibraryContext _context)
         {
-            StringBuilder fullStringSqlCall = new StringBuilder();
+
+            Dictionary<string, StringBuilder> fullStringSqlCalls = new Dictionary<string, StringBuilder>();
+
+            
             int loopCount = 0;
             foreach (var record in records)
             {
@@ -165,26 +168,45 @@ namespace sqs_processor.Services.Utility
                 }
 
                 fields += ")";
-                values += ");";
+                values += ")";
 
-
-                fullStringSqlCall.Append("INSERT INTO " + tableName + fields + " VALUES " + values);
+                if (!fullStringSqlCalls.ContainsKey(fields))
+                {
+                    fullStringSqlCalls[fields] = new StringBuilder();
+                    fullStringSqlCalls[fields].Append("INSERT INTO " + tableName + fields + " VALUES ");
+                }
+                else {
+                    fullStringSqlCalls[fields].Append(",");
+                }
+                fullStringSqlCalls[fields].Append(values);
 
                 loopCount += 1;
-                if (loopCount > 300)
+                if (loopCount > 400)
                 {
-                    string sqlCallinfo = fullStringSqlCall.ToString();
-                    _context.Database.ExecuteSqlRaw(sqlCallinfo);
+                    List<string> stringCalls = fullStringSqlCalls.Keys.ToList();
+                    foreach (string stringCall in stringCalls)
+                    {
+                        fullStringSqlCalls[stringCall].Append(";");
+                        string sqlCallinfo = fullStringSqlCalls[stringCall].ToString();
+                        _context.Database.ExecuteSqlRaw(sqlCallinfo);
+
+                    }
+                 
                     loopCount = 0;
-                    fullStringSqlCall = new StringBuilder();
+                    fullStringSqlCalls = new Dictionary<string, StringBuilder>();
                 }
 
             }
             if (loopCount > 0)
             {
-                string sqlCall = fullStringSqlCall.ToString();
-                _context.Database.ExecuteSqlRaw(sqlCall);
+                List<string> stringCalls = fullStringSqlCalls.Keys.ToList();
+                foreach (string stringCall in stringCalls)
+                {
+                    fullStringSqlCalls[stringCall].Append(";");
+                    string sqlCallinfo = fullStringSqlCalls[stringCall].ToString();
+                    _context.Database.ExecuteSqlRaw(sqlCallinfo);
 
+                }
             }
 
         }

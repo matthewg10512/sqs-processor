@@ -8,6 +8,8 @@ using System.Text;
 using sqs_processor.Services.Factories;
 using System.Threading.Tasks;
 using sqs_processor.Entities;
+using System.Threading;
+using System.Linq;
 
 namespace sqs_processor.Processes
 {
@@ -35,16 +37,14 @@ namespace sqs_processor.Processes
 
                 try
                 {
-                    var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+                    var securities = _unitOfWork.securityRepository.GetSecuritiesSymbolSecurityId(new ResourceParameters.SecuritiesResourceParameters()).OrderBy(x => x.Id).ToList(); ;
+                    
 
-
-
-                    Parallel.ForEach(
-     securities,
-new ParallelOptions { MaxDegreeOfParallelism = 3 },
-security => { ProcessEarning(security); }
-
-);
+                    foreach (SecurityIdSymbolDto security in securities)
+                    {
+                        ProcessEarning(security);
+                    }
+                    
 
 
                 }
@@ -61,14 +61,15 @@ security => { ProcessEarning(security); }
 
             _unitOfWork.Dispose();
         }
-        private void ProcessEarning(Security security)
+        private void ProcessEarning(SecurityIdSymbolDto security)
         {
             IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             List<EarningDto> earnings = new List<EarningDto>();
-            if (security.Id < 496)
+            if (security.Id < 17345)
             {
-                // continue;
+               // return;
             }
+            Thread.Sleep(200);
             _earningService.SetURL("");
             string html = _earningService.GetStringHtml(security.Symbol, "");
             earnings.AddRange(_earningService.TransformData(html, security.Id));

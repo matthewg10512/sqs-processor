@@ -10,7 +10,7 @@ namespace sqs_processor.Services.Network.HistoricalPrices
     {
         public DateTime startRange { get; set; }
         public DateTime endRange { get; set; }
-        string GetStringHtml(Security security);
+        string GetStringHtml(SecurityIdSymbolDto security);
         List<HistoricalPriceforUpdateDto> TransformData(string html, int securityId);
     }
 }

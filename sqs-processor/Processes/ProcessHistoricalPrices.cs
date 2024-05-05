@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace sqs_processor.Processes
 {
@@ -30,7 +31,7 @@ namespace sqs_processor.Processes
             SecuritiesResourceParameters sr = new SecuritiesResourceParameters();
             //var securities = _securityRepository.GetSecurities(sr);
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-            var securities = _unitOfWork.securityRepository.GetSecurities(sr);
+            var securities = _unitOfWork.securityRepository.GetSecuritiesSymbolSecurityId(sr).OrderBy(x=> x.Id);
             int totalHistorical = 0;
             int iSecurityCount = 0;
 
@@ -135,7 +136,7 @@ namespace sqs_processor.Processes
             _unitOfWork.Dispose();
         }
 
-        private void ProcessHistoricalPrice(Entities.Security security)
+        private void ProcessHistoricalPrice(SecurityIdSymbolDto security)
         {
             IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
             int totalHistorical = 0;
@@ -145,12 +146,15 @@ namespace sqs_processor.Processes
 
                 try
                 {
-                    if (security.Id  < 13575)
+              
+                
+                    if (security.Id  < 8400)
                     {
-                       // return;
+                        //return;
                     }
-                    //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
-                    var historicalPrice = unitOfWork.securityRepository.GetLastHistoricalPrice(security.Id);
+                Thread.Sleep(500);
+                //var historicalPrice = _securityRepository.GetHistoricalPricesRange(security.Id);
+                var historicalPrice = unitOfWork.securityRepository.GetLastHistoricalPrice(security.Id);
                     //there aren't any values for this
                     var stockSplitHistories = unitOfWork.securityRepository.GetStockSplitHistories(security.Id,  new StockSplitHistoriesResourceParameters()
                         { HistoricDateHigh = DateTime.UtcNow ,HistoricDateLow = DateTime.UtcNow.AddDays(-15)}

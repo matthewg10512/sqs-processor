@@ -59,7 +59,7 @@ namespace sqs_processor.Processes
 			//var info = _unitOfWork.securityRepository.GetPotentialBuys();
 
 
-			var securities = _unitOfWork.securityRepository.GetSecurities(secResourceParam);
+			var securities = _unitOfWork.securityRepository.GetSecuritiesSecurityId(secResourceParam);
 			var currentSecurityPercentage = _unitOfWork.securityRepository.GetCurrentSecurityPercentage();
 			securities = securities.Except(currentSecurityPercentage).ToList();
 
@@ -78,7 +78,7 @@ namespace sqs_processor.Processes
 				_unitOfWork.Dispose();
 		}
 
-		private void ProcessSecurityPercentageStatistic(Entities.Security security)
+		private void ProcessSecurityPercentageStatistic(SecurityIdDto security)
 		{
 			IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork(); ;
 		List<SecurityPercentageStatisticDto> securityPercentageStatistics = new List<SecurityPercentageStatisticDto>();
@@ -88,51 +88,52 @@ namespace sqs_processor.Processes
 					//683,2565,3162, 14974
 					//continue;
 				}
-				try
+			try
+			{
+				HistoricalPricesResourceParameters hisParams = new HistoricalPricesResourceParameters();
+				hisParams.HistoricDateHigh = DateTime.Now.AddDays(2);
+				hisParams.HistoricDateLow = DateTime.Now.AddDays(-730);
+				hisParams.openLow = 0;
+				var historicalPrices = unitOfWork.securityRepository.GetHistoricalPrices(security.Id, hisParams);
+				if (historicalPrices.Count == 0)
 				{
-					HistoricalPricesResourceParameters hisParams = new HistoricalPricesResourceParameters();
-					hisParams.HistoricDateHigh = DateTime.Now.AddDays(2);
-					hisParams.HistoricDateLow = DateTime.Now.AddDays(-730);
-					hisParams.openLow = 0;
-					var historicalPrices = unitOfWork.securityRepository.GetHistoricalPrices(security.Id, hisParams);
-					if (historicalPrices.Count == 0)
-					{
-						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-						
-					}
-					historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
-					decimal averagePercentDrop = GetAverageDrop(historicalPrices);
-					if (averagePercentDrop == 0 && securityPercentageStatistics.Count == 0 )
-					{
-						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-					
-					}
-					int dropCount = GetDropCount(historicalPrices, averagePercentDrop);
-					if (dropCount == 0 && securityPercentageStatistics.Count == 0)
-					{
-						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-					
-					}
-					//decimal averageDrop = GetAverageCount(historicalPrices, averagePercentDrop);
+					securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
+
+				}
+				historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
+				decimal averagePercentDrop = GetAverageDrop(historicalPrices);
+				if (averagePercentDrop == 0 && securityPercentageStatistics.Count == 0)
+				{
+					securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
+
+				}
+				int dropCount = GetDropCount(historicalPrices, averagePercentDrop);
+				if (dropCount == 0 && securityPercentageStatistics.Count == 0)
+				{
+					securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
+
+				}
+				//decimal averageDrop = GetAverageCount(historicalPrices, averagePercentDrop);
 
 
+
+
+
+				if (securityPercentageStatistics.Count == 0)
+				{
 					decimal totalPercentSum = GetTotalPercentSum(historicalPrices);
-
 					decimal highLowRangeAverage = GetLowHighRangeAverage(historicalPrices);
-
-
-
-
-
 					List<SecurityPercentages> securityPercentrages = GetPercentages(historicalPrices, averagePercentDrop, dropCount);
-
-
 					if (securityPercentrages.Count == 0 && securityPercentageStatistics.Count == 0)
 					{
 						securityPercentageStatistics.Add(AddEmptyHistoricalPrice(security.Id));
-					
 					}
+				
 
+
+
+				if (securityPercentageStatistics.Count == 0)
+				{
 					decimal lowPercentageAverage = GetLowPercentageAverage(historicalPrices, averagePercentDrop);
 					decimal averageDrophighLowRangePercentageAverage = GetAverageDropHighLowRangePercentageAverage(historicalPrices, averagePercentDrop);
 
@@ -157,12 +158,9 @@ namespace sqs_processor.Processes
 					securityPercentageStatistic.belowAverageCount = dropCount;
 					securityPercentageStatistic.AvgDropLowAvg = lowPercentageAverage;
 					securityPercentageStatistic.AvgDropHighLowRangeAvg = averageDrophighLowRangePercentageAverage;
-
-
-				if (securityPercentageStatistics.Count == 0)
-				{
 					securityPercentageStatistics.Add(securityPercentageStatistic);
 				}
+			}
 						unitOfWork.securityRepository.UpsertSecurityPercentageStatistics(securityPercentageStatistics);
 
 						unitOfWork.Dispose();

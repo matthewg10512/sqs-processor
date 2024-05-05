@@ -23,7 +23,7 @@ namespace sqs_processor.Processes
         public void RunTask()
         {
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-            var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+            var securities = _unitOfWork.securityRepository.GetSecuritiesCurrentPriceSecurityId(new ResourceParameters.SecuritiesResourceParameters());
 
 
             Parallel.ForEach(
@@ -39,7 +39,7 @@ security => { ProcessPriorPurchaseEstimate(security); }
         }
 
 
-        private void ProcessPriorPurchaseEstimate(Security security)
+        private void ProcessPriorPurchaseEstimate(SecurityIdCurrentPriceDto security)
         {
 
             IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork(); ;

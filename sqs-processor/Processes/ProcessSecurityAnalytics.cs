@@ -32,7 +32,7 @@ namespace sqs_processor.Processes
         public void RunTask()
         {
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-            var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+            var securities = _unitOfWork.securityRepository.GetSecuritiesSecurityId(new ResourceParameters.SecuritiesResourceParameters());
             
             
             int securityCount = 0;
@@ -55,7 +55,7 @@ namespace sqs_processor.Processes
            
             _unitOfWork.Dispose();
         }
-        private void ProcessSecurityAnalytic(Entities.Security security)
+        private void ProcessSecurityAnalytic(SecurityIdDto security)
         {
 
             List<SecurityAnalyticDto> securityAnalytics = new List<SecurityAnalyticDto>();
@@ -70,7 +70,10 @@ namespace sqs_processor.Processes
                     //  continue;
                 }
 
-                var historicalPrices = unitOfWork.securityRepository.GetHistoricalPricesCloseHistoricDate(security.Id, new ResourceParameters.HistoricalPricesResourceParameters());
+                var historicParams = new ResourceParameters.HistoricalPricesResourceParameters();
+                historicParams.HistoricDateHigh = DateTime.Now.AddDays(2);
+                historicParams.HistoricDateLow = DateTime.Now.AddDays(-830);
+                var historicalPrices = unitOfWork.securityRepository.GetHistoricalPricesCloseHistoricDate(security.Id, historicParams);
                 historicalPrices = historicalPrices.OrderBy(x => x.HistoricDate).ToList();
 
                 if (historicalPrices.Count < 1)

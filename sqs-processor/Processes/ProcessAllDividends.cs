@@ -7,6 +7,8 @@ using System.Text;
 using sqs_processor.Services.Factories;
 using System.Threading.Tasks;
 using sqs_processor.Entities;
+using System.Threading;
+using System.Linq;
 
 namespace sqs_processor.Processes
 {
@@ -35,14 +37,26 @@ namespace sqs_processor.Processes
                 try
                 {
 
-                    var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+                    var securities = _unitOfWork.securityRepository.GetSecuritiesSymbolSecurityId(new ResourceParameters.SecuritiesResourceParameters()).OrderBy(x => x.Id).ToList(); ;
 
-                    Parallel.ForEach(
-securities,
-new ParallelOptions { MaxDegreeOfParallelism = 3 },
-security => { ProcessDividend(security); }
+                    foreach(var security in securities) {
 
-);
+                        if(security.Id < 14025)
+                        {
+                           // continue;
+                        }
+                        
+                            List<DividendDto> dividends = new List<DividendDto>();
+                        Thread.Sleep(300);
+                        string html = _dividendService.GetStringHtml(security.Symbol, "");
+                        IUnitOfWork unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
+                        dividends.AddRange(_dividendService.TransformData(html, 0));
+
+                        dividends = unitOfWork.dividendRepository.GetDividends(dividends);
+                        unitOfWork.dividendRepository.UpdateDividends(dividends);
+                        
+                        dividends = new List<DividendDto>();
+                    }
 
 
 
@@ -61,7 +75,7 @@ security => { ProcessDividend(security); }
 
             _unitOfWork.Dispose();
         }
-        private void ProcessDividend(Security security)
+        private void ProcessDividend(SecurityIdSymbolDto security)
         {
             List<DividendDto> dividends = new List<DividendDto>();
             string html = _dividendService.GetStringHtml(security.Symbol, "");

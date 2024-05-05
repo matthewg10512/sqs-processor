@@ -7,6 +7,7 @@ using sqs_processor.Services.Network.StockSplits;
 using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,20 +43,20 @@ namespace sqs_processor.Processes
             SecuritiesResourceParameters sr = new SecuritiesResourceParameters();
             //var securities = _securityRepository.GetSecurities(sr);
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-            var securities = _unitOfWork.securityRepository.GetSecurities(sr);
+            var securities = _unitOfWork.securityRepository.GetSecuritiesSymbolSecurityId(sr).OrderBy(x=>x.Id).ToList();
             int totalStockSplit = 0;
-
+            
            // List<HistoricalPriceforUpdateDto> historicalPrices = new List<HistoricalPriceforUpdateDto>();
 
             foreach (var security in securities)
             {
                 try
                 {
-                    if (security.Id != 251)
+                    if (security.Id < 24000)
                     {
-                            //   continue;
+                             //  continue;
                     }
-
+                    Thread.Sleep(600);
                     string html = _stockSplitHistoryService.GetStringHtml(security);
                     stockSplits.AddRange(_stockSplitHistoryService.TransformData(html, security));
                     int stockSplitCount = stockSplits.Count;

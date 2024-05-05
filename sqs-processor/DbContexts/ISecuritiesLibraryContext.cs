@@ -9,10 +9,13 @@ namespace sqs_processor.DbContexts
     public interface ISecuritiesLibraryContext
     {
         // IDbSet<Dividend> Dividends { get; set; }
+        IDbSet<HistoricPerformance> HistoricPerformances { get; set; }
         IDbSet<HistoricalPrice> HistoricalPrices { get; set; }
         IDbSet<Security> Securities { get; set; }
         IDbSet<AutoSecurityTrade> AutoSecurityTrades { get; set; }
         IDbSet<tempSecurityAlerts> tempSecurityAlerts { get; set; }
+        DbSet<BullBearRun> BullBearRuns { get; set; }
+        DbSet<CurrentBullBearRun> CurrentBullBearRuns { get; set; }
         DbSet<SecurityTask> SecurityTasks { get; set; }
         IDbSet<Dividend> Dividends { get; set; }
         IDbSet<AuctionItem> AuctionItems { get; set; }

@@ -5,6 +5,7 @@ using sqs_processor.Services.repos;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace sqs_processor.Processes
 {
@@ -22,17 +23,22 @@ namespace sqs_processor.Processes
         {
 
 
-            var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+            var securities = _unitOfWork.securityRepository.GetSecuritiesDetails(new ResourceParameters.SecuritiesResourceParameters());
             List<SecurityForUpdateDto> securityProfile = new List<SecurityForUpdateDto>();
             foreach (var security in securities)
             {
-                if(security.Description != "" && security.Description != null)
+                if(security.Id < 1170)
                 {
                     continue;
                 }
+                if(security.Description != "" && security.Description != null)
+                {
+                    //continue;
+                }
                string results =  _securityProfileService.GetStringHtml(security.Symbol);
                 securityProfile.AddRange(_securityProfileService.TransformData(results, security.Symbol, security.SecurityType));
-                if(securityProfile.Count > 1000)
+                Thread.Sleep(300);
+                if(securityProfile.Count > 10)
                 {
                     _unitOfWork.securityRepository.UpsertSecurityProfile(securityProfile);
                     securityProfile = new List<SecurityForUpdateDto>();

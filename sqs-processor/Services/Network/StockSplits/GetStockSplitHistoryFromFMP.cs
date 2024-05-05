@@ -18,13 +18,13 @@ namespace sqs_processor.Services.Network.StockSplits
             _apiKey = apiKey;
         }
 
-        public string GetStringHtml(Security security)
+        public string GetStringHtml(SecurityIdSymbolDto security)
         {
             string url = "https://financialmodelingprep.com/api/v3/historical-price-full/stock_split/" + security.Symbol + "?apikey=" + _apiKey;
             return _webClient.GetHTMLString(url);
         }
 
-        public List<StockSplitHistoryDto> TransformData(string html, Security security)
+        public List<StockSplitHistoryDto> TransformData(string html, SecurityIdSymbolDto security)
         {
             StockSplitFromApi securitiesFromApi;
             List<StockSplitHistoryDto> stockSplits = new List<StockSplitHistoryDto>();

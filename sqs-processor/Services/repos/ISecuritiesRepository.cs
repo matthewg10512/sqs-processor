@@ -14,16 +14,16 @@ namespace sqs_processor.Services.repos
 
         bool SecurityExists(int securityId);
 
-     
+        public IEnumerable<SecurityIdSymbolDto> GetSecuritiesSymbolSecurityId(SecuritiesResourceParameters securitiesResourceParameters);
         public IEnumerable<Earning> GetEarnings(int securityId);
 
         public IEnumerable<EarningSecurityPercentage> GetEarningSecurityPercentage(int securityId);
 
-
+        public IEnumerable<SecurityIdCurrentPriceDto> GetSecuritiesCurrentPriceSecurityId(SecuritiesResourceParameters securitiesResourceParameters);
         public List<EarningDto> GetEarnings(List<EarningDto> earnings);
         public IEnumerable<Earning> GetEarnings(EarningsResourceParameters earningsResourceParameters);
 
-
+        public IEnumerable<SecurityDetailDto> GetSecuritiesDetails(SecuritiesResourceParameters securitiesResourceParameters);
 
         public IEnumerable<Tuple<Earning, Security>> GetSecuritiesEarnings(IEnumerable<Earning> earnings);
 
@@ -36,9 +36,9 @@ namespace sqs_processor.Services.repos
         public void UpdateEarnings(List<EarningDto> earnings);
         public IEnumerable<Security> GetPreferredSecurities();
         public IEnumerable<Security> GetSecurities(SecuritiesResourceParameters securitiesResourceParameters);
+        public IEnumerable<SecurityIdDto> GetSecuritiesSecurityId(SecuritiesResourceParameters securitiesResourceParameters);
+        
 
-
-       
         bool Save();
 
         public void UpdateSecurity(Security security);
@@ -49,6 +49,7 @@ namespace sqs_processor.Services.repos
 
         public void UpsertSecurityAnalytics(List<SecurityAnalyticDto> securityAnalytics);
 
+        public void UpsertHistoricPerformances(List<HistoricPerformanceDto> HistoricPerformances);
         public void UpsertStockSplitHistory(List<StockSplitHistoryDto> stockSplits);
         
         public void UpsertHistoricalPrices(List<HistoricalPriceforUpdateDto> historicalPrices);
@@ -57,6 +58,9 @@ namespace sqs_processor.Services.repos
         public HistoricalPrice GetLastHistoricalPrice(int securityId);
         public HistoricalPrice GetFirstHistoricalPrice(int securityId);
         public void UpdatePercentageChangeHistoricPrice(int securityId);
+        public void UpsertSecurityYearOverYearComparisons(int securityId);
+
+        public void UpdateEarningsHistoricDate(int securityId);
 
         public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges);
         public void UpsertPeakRangeDetails(List<PeakRangeDetailDto> peakRangeDetails);
@@ -66,6 +70,8 @@ namespace sqs_processor.Services.repos
 
         public void UpdateSecurities(List<SecurityForUpdateDto> securities);
 
+        public void UpsertBullRuns(List<BullBearRunDto> bullRuns);
+        public void UpsertCurrentBullRuns(List<CurrentBullBearRunDto> bullRuns);
         SecurityTask GetTasks(string taskName);
         void UpdateTasks(SecurityTask task);
 
@@ -101,7 +107,7 @@ namespace sqs_processor.Services.repos
 
 
         public List<Security> SecurityAlertCheck(SecurityAlertType securityAlertType);
-        public List<Security> GetCurrentSecurityPercentage();
+        public List<SecurityIdDto> GetCurrentSecurityPercentage();
         public string ConvertStringSecurityAlertCheck(List<Security> securities);
 
         public SecurityAlertType GetSecurityAlertType(int id);

@@ -27,7 +27,8 @@ namespace sqs_processor.DbContexts
         public DbSet<AuctionCategorySite> AuctionCategorySites { get; set; }
         public DbSet<Dividend> Dividends { get; set; }
         public DbSet<Security> Securities { get; set; }
-
+        public DbSet<BullBearRun> BullBearRuns { get; set; }
+        public DbSet<CurrentBullBearRun> CurrentBullBearRuns { get; set; }
         public DbSet<Earning> Earnings { get; set; }
         public DbSet<StockScreenerAlertType> StockScreenerAlertTypes { get; set; }
         public DbSet<SecurityTask> SecurityTasks { get; set; }
@@ -44,6 +45,7 @@ namespace sqs_processor.DbContexts
         public DbSet<SecurityAlert> SecurityAlerts { get; set; }
 
         public DbSet<CurrentPeakRange> CurrentPeakRanges { get; set; }
+        public DbSet<HistoricPerformance> HistoricPerformances { get; set; }
 
         public DbSet<TradingHoliday> TradingHolidays { get; set; }
         public DbSet<StockScreenerSearchDetail> StockScreenerSearchDetails { get; set; }

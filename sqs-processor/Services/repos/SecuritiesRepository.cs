@@ -339,13 +339,44 @@ namespace sqs_processor.Services.repos
                 );
         }
 
+        public IEnumerable<SecurityDetailDto> GetSecuritiesDetails(SecuritiesResourceParameters securitiesResourceParameters)
+        {
+            return GetSecuritiesQuery(securitiesResourceParameters).Select(x => new SecurityDetailDto { Id = x.Id,
+                Description = x.Description,
+                Symbol = x.Symbol,
+                SecurityType = x.SecurityType
+            }).ToList();
+        }
+
+
+        public IEnumerable<SecurityIdDto> GetSecuritiesSecurityId(SecuritiesResourceParameters securitiesResourceParameters)
+        {
+            return GetSecuritiesQuery(securitiesResourceParameters).Select(x => new SecurityIdDto { Id = x.Id }).ToList();
+        }
+
+
+        public IEnumerable<SecurityIdCurrentPriceDto> GetSecuritiesCurrentPriceSecurityId(SecuritiesResourceParameters securitiesResourceParameters)
+        {
+            return GetSecuritiesQuery(securitiesResourceParameters).Select(x => new SecurityIdCurrentPriceDto { Id = x.Id, CurrentPrice = x.CurrentPrice }).ToList();
+        }
+
+        
+        public IEnumerable<SecurityIdSymbolDto> GetSecuritiesSymbolSecurityId(SecuritiesResourceParameters securitiesResourceParameters)
+        {
+            return GetSecuritiesQuery(securitiesResourceParameters).Select(x => new SecurityIdSymbolDto { Id = x.Id, Symbol = x.Symbol }).OrderBy(x=>x.Id).ToList();
+        }
 
         public IEnumerable<Security> GetSecurities(SecuritiesResourceParameters securitiesResourceParameters)
+        {
+            return GetSecuritiesQuery(securitiesResourceParameters).ToList();
+        }
+
+            public IQueryable<Security> GetSecuritiesQuery(SecuritiesResourceParameters securitiesResourceParameters)
         {
             if (SearchAllSecurities(securitiesResourceParameters)
                     )
             {
-                return _context.Securities.ToList<Security>();
+                return _context.Securities as IQueryable<Security>;
             }
             var collection = _context.Securities as IQueryable<Security>;
 
@@ -480,7 +511,7 @@ namespace sqs_processor.Services.repos
                 );
             }
 
-            return collection.ToList();
+            return collection;
         }
 
         public List<HistoricalPriceCloseHistoricDateDto> GetHistoricalPricesCloseHistoricDate(int securityId, HistoricalPricesResourceParameters historicalPriceResourceParameters)
@@ -1058,6 +1089,16 @@ namespace sqs_processor.Services.repos
             _context.Database.ExecuteSqlRaw("CALL UpdateHistoricPercentChange(" + securityId.ToString() + ")");
         }
 
+        public void UpsertSecurityYearOverYearComparisons(int securityId)
+        {
+            _context.Database.ExecuteSqlRaw("CALL SecurityYearOverYearComparisonsUpsert(" + securityId.ToString() + ")");
+        }
+
+        public void UpdateEarningsHistoricDate(int securityId)
+        {
+            _context.Database.ExecuteSqlRaw("CALL UpdateEarningsHistoricDate(" + securityId.ToString() + ")");
+        }
+        
         public bool IsMarketClosed(DateTime currentDate)
         {
             if(currentDate.Hour < 14){//time is before 9am
@@ -1112,13 +1153,20 @@ namespace sqs_processor.Services.repos
             _utility.AddRecords(stockScreenerAlertsHistoryRecordsAdd, _context);
         }
 
+
+        private List<PriorPurchaseEstimate> GetCurrentCurrentPeakRangesRecs(List<PriorPurchaseEstimateDto> priorPurchaseEstimates)
+        {
+            var securityIds = priorPurchaseEstimates.Select(x => x.SecurityId).ToList();
+            return _context.PriorPurchaseEstimates.Where(x => securityIds.Contains(x.SecurityId)).ToList();
+        }
+
         public void UpsertPriorPurchaseEstimates(List<PriorPurchaseEstimateDto> priorPurchaseEstimates)
         {
-       
 
-           
 
-            List<PriorPurchaseEstimate> currentPriorPurchaseEstimates = _context.PriorPurchaseEstimates.ToList();
+
+
+            List<PriorPurchaseEstimate> currentPriorPurchaseEstimates = GetCurrentCurrentPeakRangesRecs(priorPurchaseEstimates);
 
 
 
@@ -1406,7 +1454,7 @@ namespace sqs_processor.Services.repos
             securities = securities.Except(existingRecords).ToList();
             List<Security> newRecords = _mapper.Map<List<Security>>(securities).ToList();
 
-
+            newRecords = newRecords.Where(x => x.CurrentPrice > 5).ToList();
 
             _utility.AddRecords(newRecords,_context);
 
@@ -1564,28 +1612,30 @@ namespace sqs_processor.Services.repos
 
         }
 
-        public List<Security> GetCurrentSecurityPercentage()
+        public List<SecurityIdDto> GetCurrentSecurityPercentage()
         {
             DateTime pastDate = DateTime.Now.AddDays(-7);
 
             return _context.Securities.Join(_context.SecurityPercentageStatistics, x => x.Id,
                 y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query2.DateModified > pastDate)
-                .Select(x => x.query1).ToList();
+                .Select(x => new SecurityIdDto { Id = x.query1.Id}).ToList();
 
         }
-        public void UpsertSecurityPercentageStatistics(List<SecurityPercentageStatisticDto> securityPercentageStatistics)
+
+        public List<SecurityPercentageStatistic> GetCurrentSecuritPurchaseChecks(List<SecurityPercentageStatisticDto> securityPercentageStatistics)
+        {
+            var securityIds = securityPercentageStatistics.Select(x => x.SecurityId).ToList();
+            return  _context.SecurityPercentageStatistics.Where(x => securityIds.Contains(x.SecurityId)).ToList();
+
+        }
+            public void UpsertSecurityPercentageStatistics(List<SecurityPercentageStatisticDto> securityPercentageStatistics)
         {
 
 
+            //need to fix this so it only pulls the actual security percentage
 
-            List<SecurityPercentageStatistic> currentSecuritPurchaseChecks = _context.SecurityPercentageStatistics.ToList();
-
-
-
+            List<SecurityPercentageStatistic> currentSecuritPurchaseChecks = GetCurrentSecuritPurchaseChecks(securityPercentageStatistics);
             List<SecurityPercentageStatistic> securityPercentageStats = GetSecurityPercentageStatisticList(securityPercentageStatistics, currentSecuritPurchaseChecks);
-
-
-
 
             var updatedAlready = securityPercentageStats.Join(currentSecuritPurchaseChecks, x => x.SecurityId,
                 y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.AverageDrop == o.query2.AverageDrop
@@ -1976,11 +2026,15 @@ namespace sqs_processor.Services.repos
 
 
 
-       
+        private List<CurrentPeakRange> GetCurrentCurrentPeakRangesRecs(List<CurrentPeakRangeDto> currentPeakRanges)
+        {
+            var securityIds = currentPeakRanges.Select(x => x.SecurityId).ToList();
+            return _context.CurrentPeakRanges.Where(x => securityIds.Contains(x.SecurityId)).ToList();
+        }
 
         public void UpsertCurrentPeakRanges(List<CurrentPeakRangeDto> currentPeakRanges)
         {
-            List<CurrentPeakRange> currentPeakRangesInDb = _context.CurrentPeakRanges.ToList();
+            List<CurrentPeakRange> currentPeakRangesInDb = GetCurrentCurrentPeakRangesRecs(currentPeakRanges);
             List<CurrentPeakRange> existingPeakRangeDetails = GetCurrentCurrentPeakRanges(currentPeakRangesInDb, currentPeakRanges);
 
 
@@ -2057,11 +2111,16 @@ namespace sqs_processor.Services.repos
          
             List<Security> dbSecurities = GetProfileSecurities(securities);
 
-            var securityTable = _context.Securities.Select(x=> new SecurityUpdateProfile { 
+            List<string> securitySymbols = securities.Select(x => x.Symbol).ToList();
+
+            var securityTable = _context.Securities
+                .Where(x=> securitySymbols.Contains(x.Symbol))
+                .Select(x=> new SecurityUpdateProfile { 
                 Id= x.Id, 
                 Description =x.Description, 
                 IPODate = x.IPODate,
-                Symbol = x.Symbol
+                Symbol = x.Symbol,
+                IsEtf = x.IsEtf
             }).ToList();
 
 
@@ -2071,8 +2130,8 @@ namespace sqs_processor.Services.repos
               y => y.Id, (query1, query2) => new { query1, query2 }).Where(o =>
               o.query1.Description == o.query2.Description
               && o.query1.IPODate == o.query2.IPODate
-
-
+              && o.query1.IsEtf == o.query2.IsEtf
+              && o.query2.IsEtf.HasValue 
               ).Select(x => x.query1).ToList();
 
 
@@ -2100,9 +2159,9 @@ namespace sqs_processor.Services.repos
         {
 
 
-            List<Security> security = _context.Securities.ToList();
+            
 
-            security = securities.Join(security, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 })
+            List<Security> security = securities.Join(_context.Securities, x => x.Symbol, y => y.Symbol, (query1, query2) => new { query1, query2 })
                 .Where(x => x.query1.SecurityType == x.query2.SecurityType)
                 .Select(x => new Security
                 {
@@ -2129,7 +2188,8 @@ namespace sqs_processor.Services.repos
                     excludeHistorical = x.query2.excludeHistorical,
                     IPOYear = x.query2.IPOYear,
                     Dividend = x.query2.Dividend,
-                    DividendDate = x.query2.DividendDate
+                    DividendDate = x.query2.DividendDate,
+                    IsEtf = x.query1.IsEtf
 
 
                 }).ToList();
@@ -2137,12 +2197,216 @@ namespace sqs_processor.Services.repos
         }
 
 
+        private List<CurrentBullBearRun> GetCurrentCurrentBullRunRecs(List<CurrentBullBearRunDto> currentbullBearRuns)
+        {
 
-        private List<PeakRangeDetail> GetCurrentPeakRangeDetails(List<PeakRangeDetail> currentPeakRangeDetails,List<PeakRangeDetailDto> peakRangeDetails)
+            var securityIds = currentbullBearRuns.Select(x => x.SecurityId).ToList();
+            return _context.CurrentBullBearRuns.Where(x => securityIds.Contains(x.SecurityId)).ToList();
+        }
+
+        private List<CurrentBullBearRun> GetCurrentBullRunDetails(List<CurrentBullBearRun> currentBullRunDetails, List<CurrentBullBearRunDto> bullRunDetails)
+        {
+
+
+
+
+            List<CurrentBullBearRun> existingPeakRangeDetails = bullRunDetails.Join(currentBullRunDetails, x => x.SecurityId,
+              y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RunStartDate == o.query2.RunStartDate
+              && o.query1.PercentRangeCheck == o.query2.PercentRangeCheck
+              ).Select(x => new CurrentBullBearRun
+              {
+                  SecurityId = x.query2.SecurityId,
+                  Id = x.query2.Id,
+                  PercentRangeCheck = x.query2.PercentRangeCheck,
+                  DateCreated = x.query2.DateCreated,
+                  RunStartDate = x.query2.RunStartDate,
+                  RunType = x.query1.RunType,
+                  DateModified = x.query1.DateModified,
+
+                  RunEndDate = x.query1.RunEndDate,
+                  HighDate = x.query1.HighDate,
+                  LowDate = x.query1.LowDate,
+                  StartRunPrice = x.query1.StartRunPrice,
+                  EndRunPrice = x.query1.EndRunPrice,
+                  LowPrice = x.query1.LowPrice,
+                  HighPrice = x.query1.HighPrice,
+
+                  /*
+  
+         public bool IsBullRun { get; set; }
+        public DateTime DateCreated { get; set; }
+        public DateTime DateModified { get; set; }
+        public DateTime RunStartDate { get; set; }
+        public DateTime RunEndDate { get; set; }
+        public DateTime HighOrLowDate { get; set; }
+        public decimal? BullEndLow { get; set; }
+        public decimal? LowRange { get; set; }
+        public decimal? HighRange { get; set; }
+
+ }
+                   */
+
+              }).ToList();
+
+
+            return existingPeakRangeDetails;
+        }
+
+        public void UpsertCurrentBullRuns(List<CurrentBullBearRunDto> currentbullBearRuns)
+        {
+            List<CurrentBullBearRun> currentBullRunDetails = GetCurrentCurrentBullRunRecs(currentbullBearRuns);
+            List<CurrentBullBearRun> existingBullRunDetails = GetCurrentBullRunDetails(currentBullRunDetails, currentbullBearRuns);
+
+            var updatedAlready = existingBullRunDetails.Join(currentBullRunDetails, x => x.SecurityId,
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RunType == o.query2.RunType
+           && o.query1.RunEndDate == o.query2.RunEndDate
+           && o.query1.HighDate == o.query2.HighDate
+           && o.query1.LowDate == o.query2.LowDate
+           && o.query1.StartRunPrice == o.query2.StartRunPrice
+           && o.query1.EndRunPrice == o.query2.EndRunPrice
+           && o.query1.LowPrice == o.query2.LowPrice
+           && o.query1.HighPrice == o.query2.HighPrice
+           ).Select(x => x.query1).ToList();
+
+
+            existingBullRunDetails = existingBullRunDetails.Except(updatedAlready).ToList();
+
+
+            _utility.UpdateRecords(existingBullRunDetails, _context);
+
+
+
+            var newRecords = currentbullBearRuns.Join(currentBullRunDetails, x => x.SecurityId,
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RunStartDate == o.query2.RunStartDate
+           && o.query1.PercentRangeCheck == o.query2.PercentRangeCheck
+           ).Select(x => x.query1);
+
+
+            currentbullBearRuns = currentbullBearRuns.Except(newRecords).ToList();
+            List<CurrentBullBearRun> newpeakRangeDetails = _mapper.Map<List<CurrentBullBearRun>>(currentbullBearRuns).ToList();
+
+            if (newpeakRangeDetails.Count > 0)
+            {
+                _utility.AddRecords(newpeakRangeDetails, _context);
+            }
+
+
+        }
+
+
+        private List<BullBearRun> GetCurrentBullRunDetails(List<BullBearRun> currentBullRunDetails,List<BullBearRunDto> bullRunDetails)
         {
 
             
             
+
+            List<BullBearRun> existingPeakRangeDetails = bullRunDetails.Join(currentBullRunDetails, x => x.SecurityId,
+              y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RunStartDate == o.query2.RunStartDate 
+              && o.query1.PercentRangeCheck == o.query2.PercentRangeCheck
+              ).Select(x => new BullBearRun
+              {
+                  SecurityId = x.query2.SecurityId,
+                  Id = x.query2.Id,
+                  PercentRangeCheck = x.query2.PercentRangeCheck,
+                  DateCreated = x.query2.DateCreated,
+                  RunStartDate = x.query2.RunStartDate,
+                  RunType = x.query1.RunType,
+                  DateModified = x.query1.DateModified,
+                  
+                  RunEndDate = x.query1.RunEndDate,
+                  HighDate = x.query1.HighDate,
+                  LowDate = x.query1.LowDate,
+                  StartRunPrice = x.query1.StartRunPrice,
+                  EndRunPrice = x.query1.EndRunPrice,
+                  LowPrice = x.query1.LowPrice,
+                  HighPrice = x.query1.HighPrice,
+                  
+                  /*
+  
+         public bool IsBullRun { get; set; }
+        public DateTime DateCreated { get; set; }
+        public DateTime DateModified { get; set; }
+        public DateTime RunStartDate { get; set; }
+        public DateTime RunEndDate { get; set; }
+        public DateTime HighOrLowDate { get; set; }
+        public decimal? BullEndLow { get; set; }
+        public decimal? LowRange { get; set; }
+        public decimal? HighRange { get; set; }
+
+ }
+                   */
+
+              }).ToList();
+
+
+            return existingPeakRangeDetails;
+        }
+
+
+
+        private List<BullBearRun> GetCurrentBullRunRecs(List<BullBearRunDto> bullRunDetails)
+        {
+            
+            var securityIds = bullRunDetails.Select(x => x.SecurityId).ToList();
+            return _context.BullBearRuns.Where(x => securityIds.Contains(x.SecurityId)).ToList();
+        }
+        /*
+               IsBullRun = x.query1.IsBullRun,
+                  DateCreated = x.query2.DateCreated,
+                  DateModified = x.query1.DateModified,
+                  RunStartDate = x.query1.RunStartDate,
+                  RunEndDate = x.query1.RunEndDate,
+                  HighOrLowDate = x.query1.HighOrLowDate,
+                  BullEndLow = x.query1.BullEndLow,
+                  LowRange = x.query1.LowRange,
+                  HighRange = x.query1.HighRange
+         */
+        public void UpsertBullRuns(List<BullBearRunDto> bullRunDetails)
+        {
+            List<BullBearRun> currentBullRunDetails = GetCurrentBullRunRecs(bullRunDetails);
+            List<BullBearRun> existingBullRunDetails = GetCurrentBullRunDetails(currentBullRunDetails, bullRunDetails);
+
+            var updatedAlready = existingBullRunDetails.Join(currentBullRunDetails, x => x.SecurityId,
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RunType == o.query2.RunType
+           && o.query1.RunEndDate == o.query2.RunEndDate
+           && o.query1.HighDate == o.query2.HighDate
+           && o.query1.LowDate == o.query2.LowDate
+           && o.query1.StartRunPrice == o.query2.StartRunPrice
+           && o.query1.EndRunPrice == o.query2.EndRunPrice
+           && o.query1.LowPrice == o.query2.LowPrice
+           && o.query1.HighPrice == o.query2.HighPrice
+           ).Select(x => x.query1).ToList();
+
+
+            existingBullRunDetails = existingBullRunDetails.Except(updatedAlready).ToList();
+
+
+            _utility.UpdateRecords(existingBullRunDetails, _context);
+
+
+
+            var newRecords = bullRunDetails.Join(currentBullRunDetails, x => x.SecurityId,
+           y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RunStartDate == o.query2.RunStartDate
+           && o.query1.PercentRangeCheck == o.query2.PercentRangeCheck
+           ).Select(x => x.query1);
+
+
+            bullRunDetails = bullRunDetails.Except(newRecords).ToList();
+            List<BullBearRun> newpeakRangeDetails = _mapper.Map<List<BullBearRun>>(bullRunDetails).ToList();
+
+            if (newpeakRangeDetails.Count > 0)
+            {
+                _utility.AddRecords(newpeakRangeDetails, _context);
+            }
+
+
+        }
+
+        private List<PeakRangeDetail> GetCurrentPeakRangeDetails(List<PeakRangeDetail> currentPeakRangeDetails, List<PeakRangeDetailDto> peakRangeDetails)
+        {
+
+
+
 
             List<PeakRangeDetail> existingPeakRangeDetails = peakRangeDetails.Join(currentPeakRangeDetails, x => x.SecurityId,
               y => y.SecurityId, (query1, query2) => new { query1, query2 }).Where(o => o.query1.RangeName == o.query2.RangeName
@@ -2159,30 +2423,22 @@ namespace sqs_processor.Services.repos
                   MaxRangeLength = x.query1.MaxRangeLength,
                   MaxRangeDateStart = x.query1.MaxRangeDateStart,
                   MaxRangeDateEnd = x.query1.MaxRangeDateEnd
-                  /*
-  
-        public DateTime DateCreated { get; set; }
-        public DateTime DateModified { get; set; }
-        public int RangeCount { get; set; }
-        public int RangeLength { get; set; }
-        public int MaxRangeLength { get; set; }
-        public DateTime MaxRangeDateStart { get; set; }
-        public DateTime MaxRangeDateEnd { get; set; }
- }
-                   */
-
               }).ToList();
 
 
             return existingPeakRangeDetails;
         }
 
-
+        private List<PeakRangeDetail> GetCurrentPeakRangeDetailsRecs(List<PeakRangeDetailDto> peakRangeDetails)
+        {
+            var securityIds = peakRangeDetails.Select(x => x.SecurityId).ToList();
+            return _context.PeakRangeDetails.Where(x=> securityIds.Contains(x.SecurityId)).ToList();
+        }
 
         public void UpsertPeakRangeDetails(List<PeakRangeDetailDto> peakRangeDetails)
         {
 
-            List<PeakRangeDetail> currentPeakRangeDetails = _context.PeakRangeDetails.ToList();
+            List<PeakRangeDetail> currentPeakRangeDetails = GetCurrentPeakRangeDetailsRecs(peakRangeDetails);
             List<PeakRangeDetail> existingPeakRangeDetails = GetCurrentPeakRangeDetails(currentPeakRangeDetails, peakRangeDetails);
 
 
@@ -2231,6 +2487,73 @@ namespace sqs_processor.Services.repos
             return securitiesInTable;
         }
 
+        private List<HistoricPerformance> GetCurrentHistoricPerformancesRecords(List<HistoricPerformanceDto> historicPerformances)
+        {
+            var stockSecurityId = historicPerformances.Select(x => x.SecurityId).ToList();
+            var securitiesInTable = _context.HistoricPerformances.Where(x => stockSecurityId.Contains(x.SecurityId)).ToList();
+            return securitiesInTable;
+        }
+
+        public void UpsertHistoricPerformances(List<HistoricPerformanceDto> historicPerformances)
+        {
+            List<HistoricPerformance> historicPerformanceTable = GetCurrentHistoricPerformancesRecords(historicPerformances);
+
+
+            var historicPerformanceRecords = _mapper.Map<List<HistoricPerformance>>(historicPerformances).ToList();
+
+
+
+            var recordsMatch = historicPerformanceRecords.Join(historicPerformanceTable, x => x.SecurityId,
+         y => y.SecurityId, (query1, query2) => new { query1, query2 })
+
+                .Select(x => x.query1
+
+                );
+
+
+            var newRecords = historicPerformanceRecords.Except(recordsMatch).ToList();
+
+
+            if (newRecords.Count > 0)
+            {
+                _utility.AddRecords(newRecords, _context);
+            }
+
+
+            var existingRecords = historicPerformanceRecords.Join(historicPerformanceTable, x => x.SecurityId,
+       y => y.SecurityId, (query1, query2) => new { query1, query2 })
+
+              .Select(x => new HistoricPerformance
+              {
+                  Id = x.query2.Id,
+                  SecurityId = x.query1.SecurityId,
+                  DateCalculated = x.query1.DateCalculated,
+                  WeekAgoPrice = x.query1.WeekAgoPrice,
+                  MonthAgoPrice = x.query1.MonthAgoPrice,
+                  QuaterAgoPrice = x.query1.QuaterAgoPrice,
+                  YearAgoPrice = x.query1.YearAgoPrice,
+
+              }).ToList();
+
+
+            var updatedAlready = existingRecords.Join(historicPerformanceTable, x => x.Id,
+              y => y.Id, (query1, query2) => new { query1, query2 }).Where(x =>
+
+
+               x.query1.WeekAgoPrice == x.query2.WeekAgoPrice &&
+                  x.query1.MonthAgoPrice == x.query2.MonthAgoPrice &&
+                  x.query1.QuaterAgoPrice == x.query2.QuaterAgoPrice &&
+                  x.query1.YearAgoPrice == x.query2.YearAgoPrice
+
+              ).Select(x => x.query1).ToList();
+
+
+            var updatedbSecurities = existingRecords.Except(updatedAlready).ToList();
+
+
+            _utility.UpdateRecords(updatedbSecurities, _context);
+
+        }
         private List<StockSplitHistory> GetCurrentStockSplitHistoryRecords(List<StockSplitHistoryDto> stockSplits)
         {
             var stockSecurityId = stockSplits.Select(x => x.SecurityId).ToList();
@@ -2238,6 +2561,7 @@ namespace sqs_processor.Services.repos
             return stockSplitTable;
         }
 
+   
 
         public void UpsertSecurityAnalytics(List<SecurityAnalyticDto> securityAnalytics)
         {

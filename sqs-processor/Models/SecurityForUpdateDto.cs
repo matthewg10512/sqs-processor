@@ -45,6 +45,6 @@ namespace sqs_processor.Models
         public string Description { get; set; }
         public DateTime DateCreated { get; set; }
         public DateTime IPODate { get; set; }
-
+        public bool? IsEtf { get; set; }
     }
 }

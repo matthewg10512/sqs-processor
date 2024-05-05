@@ -19,7 +19,7 @@ namespace sqs_processor.Models
         public float? priceAvg50 { get; set; }
         public float? priceAvg200 { get; set; }
         public long? volume { get; set; }
-        public int? avgVolume { get; set; }
+        public long? avgVolume { get; set; }
         public string exchange { get; set; }
         public float? open { get; set; }
         public float? previousClose { get; set; }

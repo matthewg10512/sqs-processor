@@ -23,7 +23,7 @@ namespace sqs_processor.Processes
         public void RunTask()
         {
             _unitOfWork = _unitOfWorkFactory.GetUnitOfWork();
-            var securities = _unitOfWork.securityRepository.GetSecurities(new ResourceParameters.SecuritiesResourceParameters());
+            var securities = _unitOfWork.securityRepository.GetSecuritiesCurrentPriceSecurityId(new ResourceParameters.SecuritiesResourceParameters());
 
 
             Parallel.ForEach(
@@ -44,7 +44,7 @@ security => { ProcessPeakRangeDetail(security); }
             _unitOfWork.Dispose();
         }
 
-        private void ProcessPeakRangeDetail(Security security)
+        private void ProcessPeakRangeDetail(SecurityIdCurrentPriceDto security)
         {
              IUnitOfWork unitOfWork= _unitOfWorkFactory.GetUnitOfWork(); ;
         List<PeakRangeDetailDto> peakRangeDetails = new List<PeakRangeDetailDto>();

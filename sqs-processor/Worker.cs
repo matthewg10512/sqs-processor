@@ -32,12 +32,12 @@ namespace sqs_processor
     {
         private const string assemblyNamespace = "sqs_processor.Processes.";
         private readonly ILogger<Worker> _logger;
-        
+
         private readonly IServiceFactory _serviceFactory;
         public Worker(ILogger<Worker> logger, IServiceProvider serviceProvider)
         {
             _logger = logger;
-            
+
             _serviceFactory = serviceProvider.CreateScope().ServiceProvider.GetRequiredService<IServiceFactory>();
         }
 
@@ -46,7 +46,7 @@ namespace sqs_processor
             var objectType = Type.GetType(objectToInstantiate);
             if (objectType != null)
             {
-            
+
                 IProcess t;
                 t = Activator.CreateInstance(objectType, _serviceFactory) as IProcess;
                 t.RunTask();
@@ -75,7 +75,7 @@ namespace sqs_processor
                         foreach (Message message in response.Messages)
                         {
                             Console.WriteLine($"Message: {message.Body}");
-                            
+
                             try
                             {
 
@@ -90,13 +90,13 @@ namespace sqs_processor
                                 {
                                     //  string objectToInstantiate = assemblyNamespace + "ProcessUpdateSecurity";
                                     CreateWorkerClass(objectToInstantiate);
-                                  
+
                                 }
                                 catch (Exception ex)
                                 {
                                     Console.WriteLine($"CreateWorkerClass Error: {ex.Message}");
                                 }
-                               
+
 
                             }
                             catch (Exception ex)
@@ -107,32 +107,32 @@ namespace sqs_processor
 
 
                             //Deleting message
-                            var deleteMessageRequest = new DeleteMessageRequest(sqsUrl, message.ReceiptHandle);
-                            await amazonSQSClient.DeleteMessageAsync(deleteMessageRequest, stoppingToken);
+                               var deleteMessageRequest = new DeleteMessageRequest(sqsUrl, message.ReceiptHandle);
+                             await amazonSQSClient.DeleteMessageAsync(deleteMessageRequest, stoppingToken);
 
                             Console.WriteLine($"Message deleted");
                         }
                     }
                     else
                     {
-                      //  Console.WriteLine("no Messages");
+                        //  Console.WriteLine("no Messages");
                     }
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");
 
                     //   CreateWorkerClass("sqs_processor.Processes.ProcessAllDividends");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessAllEarnings");
-                    //CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");
+                   //CreateWorkerClass("sqs_processor.Processes.ProcessSecurityPercentageStatistics");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessStockScreenerAlerts");
 
                     // CreateWorkerClass("sqs_processor.Processes.ProcessPeakRangeDetails");
 
-                  //  CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSiteDataRetrieval");
-                    
-                    
-                  //CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSingleSiteEnd");
-                 //   CreateWorkerClass("sqs_processor.Processes.ProcessGiveAways");
-                    
+                    //  CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSiteDataRetrieval");
+
+
+                    //CreateWorkerClass("sqs_processor.Processes.ProcessAuctionSingleSiteEnd");
+                    //   CreateWorkerClass("sqs_processor.Processes.ProcessGiveAways");
+
                     //CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurity");
                     // CreateWorkerClass("sqs_processor.Processes.ProcessUpdateSecurityProfiles");
                     //CreateWorkerClass("sqs_processor.Processes.ProcessHistoricalPrices");
@@ -149,7 +149,7 @@ namespace sqs_processor
                 // var t=(IProcess) System.Reflection.Assembly.GetExecutingAssembly().CreateInstance("ProcessUpdateSecurity");
 
 
-               
+
 
 
                 await Task.Delay(10000, stoppingToken);

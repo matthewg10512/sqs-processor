@@ -9,5 +9,6 @@ namespace sqs_processor.Models
         public string symbol { get; set; }
         public string description { get; set; }
         public DateTime? ipoDate { get; set; }
+        public bool isEtf { get; set; }
     }
 }
